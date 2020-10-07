@@ -27,7 +27,11 @@ module.exports = {
             var flag = Game.flags[flagName]
             //console.log(flag.color , flag.secondaryColor == COLOR_BLUE)
             if(flag.color == COLOR_YELLOW && flag.secondaryColor == COLOR_BLUE){
+                try{
                 runFlag(flag)
+                }catch(err){
+                    console.log(flag)
+                }
                 //flag.remove()
             }
         }

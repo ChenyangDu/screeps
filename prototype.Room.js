@@ -7,11 +7,13 @@
  * @FilePath: \default\prototype.Room.js
  */
 if(!Memory['prototype'])Memory['prototype'] = {};
-if(!Memory['prototype'][this.name])Memory['prototype'][this.name] = {};
 
 
 Room.prototype.tStorage = function(){
     let controller = this.controller;
+
+    if(!Memory['prototype'][this.name])Memory['prototype'][this.name] = {}
+
     let tStorage = Game.getObjectById(Memory['prototype'][this.name].tStorage)
     if(tStorage)return tStorage;
     

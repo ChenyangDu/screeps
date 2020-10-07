@@ -1,6 +1,6 @@
 
 var roleminer = require('miner')
-
+ 
 function getAvaliableSpawn(room){
     for (var spawnname in Game.spawns){
         var spawn = Game.spawns[spawnname]
@@ -78,7 +78,7 @@ module.exports = {
         var energyAvai = spawn.room.energyAvailable;
         var energyCap = spawn.room.energyCapacityAvailable;
         /*
-        if(energyAvai == energyCap && room == 'E41N42' && Game.time % 500 < 50){
+        if(energyAvai == energyCap && room == 'E41N42' && Game.time % 1000 < 30){
             spawn.spawnCreep([WORK,WORK,WORK,WORK,WORK,WORK,
                 CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,
                 MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,
@@ -89,13 +89,10 @@ module.exports = {
         
         var max_sum_harvesters = 2
         if(Game.rooms[room].controller.level < 8){
-            max_sum_harvesters = Math.max(2,upgraders/2)
+            max_sum_harvesters = Math.max(2,upgraders+1)
         }
         if(Game.rooms[room].controller.level == 8 && room != 'W9S11'){
             max_sum_harvesters = 1;
-        }
-        if(room == 'W7S11'){
-            max_sum_harvesters = 3;
         }
         
         if(harvesters < max_sum_harvesters){
@@ -140,12 +137,8 @@ module.exports = {
             if(Game.rooms[room].terminal && Game.rooms[room].terminal.store[RESOURCE_ENERGY] >= 50*1000){
                 needToSpawnUpgrader = true;
             }
-            if(Game.shard.name == 'shard3'){
-                if(upgraders >= 6){
-                    needToSpawnUpgrader = false;
-                }
-            }
-            if(upgraders >= 6){
+            
+            if(upgraders >= 8){
                 needToSpawnUpgrader = false;
             } 
             /*
@@ -176,7 +169,12 @@ module.exports = {
                 while(cost + baseCost <= energyAvai && body.length + baseBody.length <= 50){
                     cost += baseCost
                     body = body.concat(baseBody)
-                }
+                }/*
+                baseBody = [WORK,WORK,MOVE,],baseCost = 250
+                while(cost + baseCost <= energyAvai && body.length + baseBody.length <= 50){
+                    cost += baseCost
+                    body = body.concat(baseBody)
+                }*/
                 baseBody = [WORK,MOVE,],baseCost = 150
                 while(cost + baseCost <= energyAvai && body.length + baseBody.length <= 50){
                     cost += baseCost
@@ -203,9 +201,12 @@ module.exports = {
                     CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,
                     MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,]
             }
-            if(Game.time % 10 == 0 && spawn.room.find(FIND_MINERALS)[0].mineralAmount > 0 && miners < max_sum_miners){
-                spawn.spawnCreep(body,'miner_'+spawn.room.name+'_'+Game.time,{memory:{role:'miner',harvesting : false}})
-                busy = true;
+            if(Game.time % 10 == 0 && miners < max_sum_miners){
+                let mineral = spawn.room.find(FIND_MINERALS)[0]
+                if(spawn.room.storage && mineral.mineralAmount > 0 && spawn.room.storage.store[mineral.mineralType] <= 50000){
+                    spawn.spawnCreep(body,'miner_'+spawn.room.name+'_'+Game.time,{memory:{role:'miner',harvesting : false}})
+                    busy = true;
+                }
             }
         }
         
@@ -268,7 +269,7 @@ module.exports = {
             if(list && list.length){
                 if(spawn.spawnCreep(list[0].body,list[0].name,list[0].opt) == OK)
                     list.splice(0,1)
-                //console.log(list[0].name)
+                    
             }
         }
         

@@ -175,7 +175,7 @@ function runCreepCarry(creep,flag){
                 }
             }
         }else{
-            creep.moveTo(flag,{ignoreCreeps:false,range:4})  
+            creep.moveTo(flag,{ignoreCreeps:false,range:3})  
         }
     }
 }

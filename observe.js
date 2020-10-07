@@ -42,6 +42,11 @@ const observeRooms_shard2 = [
         watchRooms:['E40N45','E40N44','E40N43','E40N42','E40N41','E40N40',],//8
         powerWatchRooms:['E40N45','E40N44','E40N43','E40N42','E40N41','E40N40',],
         midRoom:'E40N43'
+    },{
+        mainRoom:'E39N51',
+        watchRooms:['E40N52','E40N51','E40N50','E39N50','E38N50',],//8
+        powerWatchRooms:['E40N52','E40N51','E39N50','E38N50',],
+        midRoom:'E39N51'
     },
 ]
 

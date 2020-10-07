@@ -31,7 +31,7 @@ module.exports = {
 function solve(flag){
     const roomName = flag.pos.roomName;
     const room = Game.rooms[roomName]
-    if(!room || Game.time %100 != 0)return;
+    if(!room || Game.time %200 != 0)return;
     let sources = room.find(FIND_SOURCES)
     sources.forEach(source => {
         let flagName = flag.name.split('_')[0]+'_'+flag.pos.roomName+'_'+source.id[source.id.length-1]
@@ -89,7 +89,7 @@ function runFlag(flag){
     autoSpawn('Y_20_'+flag.name,body,100,roomName,carryer,flag)
 
     let transferTarget = room.storage
-    if(transferTarget && Game.time % 100 == 0){
+    if(transferTarget && Game.time % 200 == 0){
         transferTarget.range = 1;
         //let path = 
         //let path = PathFinder.search(flag.pos,transferTarget).path
@@ -146,11 +146,12 @@ function runFlag(flag){
 }
 
 function harvester(creep,flag){
-    if(Game.time % 11 == 0){
-        if(creep.room.find(FIND_MY_CONSTRUCTION_SITES).length)
-            creep.memory.role = 'Nbuilder'
-        else
-            creep.memory.role = null;
+    if(Game.time % 17 == 0){
+        if(creep.store.energy && creep.room.find(FIND_MY_CONSTRUCTION_SITES).length){
+            creep.memory.role = 'Nbuilder';
+            creep.memory.building = true;
+        }
+        else creep.memory.role = null
     }
     if(creep.memory.role)return;
     let resource;
@@ -349,14 +350,13 @@ function defendCreepRoom(defendRoom){
             creep.moveTo(new RoomPosition(25,25,defendRoom.name))
             return;
         }
-        let myCreeps = creep.pos.findInRange(FIND_MY_CREEPS,3,{
+        let myCreeps = creep.pos.findInRange(FIND_MY_CREEPS,1,{
             filter:(c)=>(c.hits<c.hitsMax)
         });
         if(myCreeps.length){
             myCreeps.sort((a,b)=>((b.hitsMax-b.hits-(a.hitsMax-a.hits))))
             if(myCreeps[0].pos.isNearTo(creep))
                 creep.heal(myCreeps[0])
-            else creep.rangedHeal(myCreeps[0])
         }
         let target = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
         if(target){
@@ -380,7 +380,7 @@ function defendCreepRoom(defendRoom){
                 if(creep.pos.isNearTo(myCreeps)){
                     creep.heal(myCreeps)
                 }else
-                creep.moveTo(myCreeps,{range:1})
+                creep.moveTo(myCreeps,{range:1,ignoreCreeps:false})
             }
         }
         

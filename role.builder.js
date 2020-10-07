@@ -6,6 +6,7 @@
  * @Description: In User Settings Edit
  * @FilePath: \default\role.builder.js
  */
+var roleHarvester = require('role.harvester_old')
 var roleBuilder = {
     
     run: function(creep) {
@@ -13,13 +14,14 @@ var roleBuilder = {
             creep.memory.building = false;
 	    }
 	    if(!creep.memory.building && creep.carry.energy == creep.carryCapacity) {
-	        creep.say('building');
+            creep.say('building');
+            creep.memory.harvestTarget = null;
 	        creep.memory.building = true;
         }
         /*var targets = creep.room.find(FIND_CONSTRUCTION_SITES);
         if(targets.length)targets = targets[0];
         else targets = null;*/
-        var targets = Game.getObjectById('5e88a6546dac3c1d575f88b9')
+        var targets = null;
         if(!targets || targets.room.name != creep.room.name)
             targets = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
 	    if(creep.memory.building) {
@@ -40,6 +42,8 @@ var roleBuilder = {
             }
 	    }
 	    else {
+            roleHarvester.getEnergy(creep)
+            return;
             let ruin = creep.pos.findClosestByPath(FIND_RUINS,{
                 filter:(struct)=>(
                     struct.store.energy

@@ -37,7 +37,7 @@ var roleHarvester = {
                 }
             }
         }
-        if(!harvestTarget && creep.room.controller.level == 8 && creep.room.terminal &&
+        if(!harvestTarget && creep.room.controller && creep.room.controller.level == 8 && creep.room.terminal &&
             creep.room.terminal.store[RESOURCE_ENERGY] >= 75000){
                 harvestTarget = creep.room.terminal;
             }
@@ -45,7 +45,7 @@ var roleHarvester = {
         var storage = creep.room.storage;
         if(!harvestTarget &&storage&& storage.store[RESOURCE_ENERGY]>=200)harvestTarget = storage;
         
-        if(!harvestTarget && creep.room.controller.level < 8 && creep.room.terminal &&
+        if(!harvestTarget && creep.room.controller && creep.room.controller.level < 8 && creep.room.terminal &&
             creep.room.terminal.store[RESOURCE_ENERGY] >= creep.carryCapacity){
                 harvestTarget = creep.room.terminal;
             }
@@ -84,15 +84,12 @@ var roleHarvester = {
             creep.pickup(target[0]) 
         }
         const tomb = creep.pos.lookFor(LOOK_TOMBSTONES);
-        if(tomb){
-            creep.withdraw(tomb,RESOURCE_ENERGY)
+        if(tomb[0]){
+            creep.withdraw(tomb[0],RESOURCE_ENERGY)
         }
     },
     run: function(creep) {
-        if(creep.room.energyAvailable == creep.room.energyCapacityAvailable){
-            creep.say('zzz')
-            //return;
-        }
+        
         creep.say('har')
         if(creep.memory.srole == 'tStorage'){
             creep.say('ss')
@@ -107,16 +104,33 @@ var roleHarvester = {
             this.getEnergy(creep)
         }
         else {
-            var targets2 = null;
+
+            if(creep.ticksToLive % 3 == 0){
+                let creeps = creep.pos.findInRange(FIND_MY_CREEPS,1,{
+                    filter:(o)=>(o.memory.role == creep.memory.role && o.memory.transferTarget == creep.transferTarget
+                        && o.store.energy > creep.store.energy && o.store.getFreeCapacity('energy') >= creep.store.energy)
+                })
+                if(creeps.length){
+                    creep.transfer(creeps[0],'energy')
+                }
+            }
+
+            var transferTarget = null;
+
+            if(!transferTarget)transferTarget = Game.getObjectById(creep.memory.transferTarget);
+            if(transferTarget && !transferTarget.store.getFreeCapacity('energy')){
+                transferTarget = null;
+            }
+
             let tStorage = creep.room.tStorage();
 
-            if(!targets2 && creep.memory.srole == 'tStorage'){
+            if(!transferTarget && creep.memory.srole == 'tStorage'){
                 
-                if(tStorage && tStorage.store.energy <= 1500)
-                targets2 = tStorage;
+                if(tStorage)
+                transferTarget = tStorage;
             }
-            if(!targets2){
-                targets2 = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+            if(!transferTarget){
+                transferTarget = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                         filter: (structure) => {
                             return (structure.structureType == STRUCTURE_CONTAINER ||
                                 structure.structureType == STRUCTURE_EXTENSION || 
@@ -125,14 +139,14 @@ var roleHarvester = {
                                 (structure.structureType == STRUCTURE_POWER_SPAWN && structure.energy <= 4500) || 
                                 (structure.structureType == STRUCTURE_TOWER && 
                                     (structure.energy < 700 || (structure.energy<=900 && creep.room.energyAvailable >= 0.9*creep.room.energyCapacityAvailable))) || 
-                                structure.structureType == STRUCTURE_SPAWN 
+                                (structure.structureType == STRUCTURE_SPAWN )
                                 )&&
                                 structure.energy < structure.energyCapacity;
                         }
                 });
             }
             
-            if(!targets2 || (creep.memory.srole == 'tStorage' && tStorage && targets2.id == tStorage.id)){
+            if(!transferTarget || (creep.memory.srole == 'tStorage' && tStorage && transferTarget.id == tStorage.id)){
                 let other = creep.pos.findInRange(FIND_MY_CREEPS,1,{
                     filter:function(o){
                         if(o.store.energy)return false;
@@ -140,31 +154,36 @@ var roleHarvester = {
                         return false;
                     }
                 })
-                if(other.length)targets2 = other[0];
+                if(other.length)transferTarget = other[0];
             }
-            if(!targets2 && creep.room.controller.level == 8 &&
+            if(!transferTarget && creep.room.controller.level == 8 &&
                 creep.room.terminal && creep.room.terminal.store[RESOURCE_ENERGY] < 70*1000){
-                targets2 = creep.room.terminal;
+                transferTarget = creep.room.terminal;
             }
 
-            if(!targets2){
+            if(!transferTarget && creep.store.getFreeCapacity('energy') == 0){
                 let tStorage = creep.room.tStorage();
-                if(tStorage && tStorage.store.energy < 1500)
-                    targets2 = tStorage
+                if(tStorage && tStorage.store.energy < 2000)
+                    transferTarget = tStorage
             }
 
-            if(!targets2){
-                targets2 = creep.room.storage
+            if(!transferTarget){
+                transferTarget = creep.room.storage
             }
             
-            if(!targets2){
+            if(!transferTarget){
                 creep.moveTo(39,19)
             }
+
+            if(transferTarget){
+                creep.memory.transferTarget = transferTarget.id;
+            }
             
-            if(creep.pos.isNearTo(targets2)){
-                creep.transfer(targets2,RESOURCE_ENERGY)
+            if(creep.pos.isNearTo(transferTarget)){
+                creep.transfer(transferTarget,RESOURCE_ENERGY)
+                creep.memory.transferTarget = null;
             }else{
-                creep.moveTo(targets2);
+                creep.moveTo(transferTarget);
             }
             
             if(creep.carry[RESOURCE_ENERGY] != _.sum(creep.carry)){

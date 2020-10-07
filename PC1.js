@@ -12,7 +12,7 @@ function PC(creep){
         if(creep.name == '木')opFactory(creep)
         if(creep.name == '火')opFactory(creep)
     if(creep.name == '蚩尤' && fight){
-        opSpawn(creep)
+        //opSpawn(creep)
         //opTower(creep)
         opExt(creep)
     }

@@ -1,7 +1,7 @@
 module.exports = {
     run:function(roomName){
         var flag = Game.flags["Main_" + roomName]
-        if(flag && Game.time % 100 == 0){
+        if(flag && Game.time % 123 == 0){
             runFlag(flag)
         }
     },
@@ -28,6 +28,7 @@ var room;
 var exits = [
     {"x":1,"y":8},{"x":8,"y":1},{"x":5,"y":12},{"x":12,"y":5},
 ]
+var center = {"x":5,"y":9}
 
 function runFlag(flag){
     room = Game.rooms[flag.pos.roomName]
@@ -35,6 +36,7 @@ function runFlag(flag){
         console.log('没得视野')
     }
     let level = room.controller.level;
+    let compeleted = true
     for(var type in structureLayout[level].buildings){
         let positions = structureLayout[level].buildings[type]
         if(positions.length){
@@ -49,66 +51,66 @@ function runFlag(flag){
                 let pos = new RoomPosition(position.x + flag.pos.x,position.y + flag.pos.y,flag.pos.roomName)
                 let structures = flag.pos.lookFor(LOOK_STRUCTURES).filter((o)=>(o.structureType == type))
                 if(!structures.length){
-                    pos.createConstructionSite(type)
+                    if(pos.createConstructionSite(type) == OK){
+                        compeleted = false
+                    }
                 }
             
             }
         }
     }
-    if(level >= 2){
-        sourceKeep(flag)
+    if(level >= 2 && compeleted){
+        compeleted = sourceKeep(flag)
     }
-    if(level >= 2 && level < 8){
+    if(level >= 2 && level < 8 && compeleted){
         controlKeep(flag)
     }
     if(level >= 6){
         let miner = room.find(FIND_MINERALS)[0]
         miner.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
     }
-    /*
-    var roads = Game.rooms.sim.find(FIND_STRUCTURES,{filter:(o)=>(o.structureType == STRUCTURE_ROAD)})
-    var string = ""
-    if(roads.length){
-        for(var road of roads){
-            string += "{\"x\":" + (road.pos.x-1)+"\"y\":" + (road.pos.y-1) + "},"
-        }
-    }
-    console.log(string)*/
 }
 function sourceKeep(flag){
     var sources = room.find(FIND_SOURCES)
+    let compeleted = true;
     for(var source of sources){
-        exits.forEach(exit => {
-            exit.pos = new RoomPosition(exit.x + flag.pos.x,exit.y + flag.pos.y,flag.pos.roomName)
-            exit.PathFinder = PathFinder.search(source.pos,exit)
-        });
-        exits.sort((a,b)=>(a.PathFinder.cost - b.PathFinder.cost))
-        let path = exits[0].PathFinder.path
+        
+        let endPos = new RoomPosition(center.x + flag.pos.x,center.y + flag.pos.y,flag.pos.roomName)
+        let path = myPathFinder(source.pos, {pos:endPos}).path
         
         for(var i=1;i<path.length;i++){
-            path[i].createConstructionSite(STRUCTURE_ROAD)
+            if(path[i].createConstructionSite(STRUCTURE_ROAD) == OK){
+                compeleted = false;
+            }
         }
         
         path[0].createFlag(flag.pos.roomName + '_' + source.id[source.id.length-1],COLOR_YELLOW,COLOR_YELLOW)
     }
+    return compeleted
 }
 
 function controlKeep(flag){
     let controller = room.controller;
-    controller.range = 3;
-     exits.forEach(exit => {
-        exit.pos = new RoomPosition(exit.x + flag.pos.x,exit.y + flag.pos.y,flag.pos.roomName)
-        
-        exit.PathFinder = PathFinder.search(exit.pos,controller)
-    });
-    exits.sort((a,b)=>(a.PathFinder.cost - b.PathFinder.cost))
-    let path = exits[0].PathFinder.path
-    
+    let startPos = new RoomPosition(center.x + flag.pos.x,center.y + flag.pos.y,flag.pos.roomName)
+    controller.range = 2;
+    let path = myPathFinder(startPos,controller).path
     for(var i=0;i<path.length-1;i++){
         path[i].createConstructionSite(STRUCTURE_ROAD)
     }
-    if(path.length)
-        path[path.length-1].createConstructionSite(STRUCTURE_CONTAINER)
+    
+    if(path.length){
+        let containerPos = path[path.length-1]
+        containerPos.createConstructionSite(STRUCTURE_CONTAINER)
+        if(controller.level >= 6){
+            for(let x = -1;x<=1;x++){
+                for(let y = -1;y<=1;y++){
+                    if(x || y){
+                        new RoomPosition(containerPos.x+x,containerPos.y+y,containerPos.roomName).createConstructionSite(STRUCTURE_ROAD)
+                    }
+                }
+            }
+        }
+    }
 }
 
 function roadBuild(flag,position){
@@ -124,6 +126,44 @@ function roadBuild(flag,position){
     for(var pos of path){
         new RoomVisual(pos.roomName).circle(pos.x,pos.y);
     }
+}
+
+function myPathFinder(startPos,target){
+    return PathFinder.search(
+        startPos, target,
+        {
+        // 我们需要把默认的移动成本设置的更高一点
+        // 这样我们就可以在 roomCallback 里把道路移动成本设置的更低
+        plainCost: 2,
+        swampCost: 4,
+
+        roomCallback: function(roomName) {
+
+            let room = Game.rooms[roomName];
+            if (!room) return;
+            let costs = new PathFinder.CostMatrix;
+
+            room.find(FIND_STRUCTURES).forEach(function(struct) {
+                if (struct.structureType === STRUCTURE_ROAD) {
+                    // 相对于平原，寻路时将更倾向于道路
+                    costs.set(struct.pos.x, struct.pos.y, 1);
+                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
+                            (struct.structureType !== STRUCTURE_RAMPART ||
+                            !struct.my)) {
+                    // 不能穿过无法行走的建筑
+                    costs.set(struct.pos.x, struct.pos.y, 0xff);
+                }
+            });
+            room.find(FIND_CONSTRUCTION_SITES).forEach(function(site) {
+                if(site.structureType == STRUCTURE_ROAD){
+                    costs.set(site.pos.x,site.pos.y,1);
+                }
+            })
+
+            return costs;
+        },
+        }
+    );
 }
 
 const structureLayout = {

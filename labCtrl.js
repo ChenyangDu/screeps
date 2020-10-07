@@ -1,32 +1,39 @@
 /**********************************************
 
 author：ChenyangDu
-version:1.2
+version:1.4
 
 lab半自动
 
-使用方法：
+【更新说明】：
+1、修复了好多bug，例如拿着原料不知道该干啥，creep生出来立马自杀
+2、creep可以快结束反应时提前生产
+3、增加了适应operate_lab的情况
+4、可以分批提供原料，如果目标大于3000，将会拆解成若干个小的3000任务，所以可以一次设置很大的任务量
+
+【使用方法】：
 1、需要占用Memory.lab，不要和其他代码冲突
 2、需要手动提供原矿或者其他中间产物,提前放在房间的storage 或者terminal里面都行
     比如想生产1000 XGH2O，可以准备1000 X, 1000 G, 1000 O, 2000 H
     也可以准备500 GH2O, 1000 X, 500 GH, 500 OH
     总之能合成就行
-3、storage不要满，要不没地方放产物
-4、尽量科学摆放LAB（有两个lab离其他lab的距离<=2），代码会自动寻找生产效率最大的方式
+3、如果想生产多于3000的产物，例如想生产10000 G，在刚开始，只需要提供3000 L/Z/K/U，当生产完3000 G之后，再补充原料即可。
+4、如果你的房间物流能够保证原矿不断，那么可以使用下面的UNLIMITED_RESOURCES来避开检测某些矿物数量不足。
+5、storage不要满，要不没地方放产物
+6、尽量科学摆放LAB（有两个lab离其他lab的距离<=2），代码会自动寻找生产效率最大的方式
 
-代码部分如下
+【代码部分】
 
 var labCtrl = require('labCtrl')
 
 module.exports.loop = function () {
 
     labCtrl.run('W43N27',RESOURCE_GHODIUM,2000)
+    labCtrl.run('W47N21','XGH2O',200000)
 
     //your code
 
 }
-
-更新部分：修改了部分bug，并添加了提前生产creep的功能，实现进入回收状态的时候creep刚好生出来
 
 ***************************************************/
 
@@ -36,7 +43,7 @@ const STATE_RECOVERY = 2
 
 const body = [CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOVE]
 //lab专用creep的身体部件，如果嫌多，或者嫌少，自行调整
-
+const UNLIMITED_RESOURCES = ['Z','K','U','L','H','O','X'];//如果你的房间物流能够保证提供这些基础矿物，那么程序会默认这些矿物数量为无穷大
 
 var room,needs,labs,creep
 
@@ -62,16 +69,18 @@ module.exports = {
         });
         
         needs = new Array();
-        //needs.push([need_type,need_amount]);
+        
         need_amount = need_amount - getAllType(need_type)
         if(need_amount > 3000) need_amount = 3000;
         need_amount += getAllType(need_type)
-        //console.log(need_amount)
+        
         pushMission([need_type,need_amount],roomName)
-        //console.log(roomName,needs)
+        //console.log(roomName,needs) 
         if(needs.length >= 1){
             var product = needs[needs.length-1][0],amount = Math.min(3000, needs[needs.length-1][1]);
             var materials = findMaterial(product)
+        }else{
+            console.log(roomName,'already has',need_amount,need_type)
         }
         if(amount % 5)amount += 5-amount%5;
         //console.log(materials)
@@ -85,10 +94,17 @@ module.exports = {
         }
 
         //change state 
-
+        
         if(state == STATE_REACTION && (labs[0].mineralType == undefined || labs[1].mineralType == undefined)){
-            console.log('state change to STATE_RECOVERY')
+            console.log(roomName + ' state change to STATE_RECOVERY','合成完了')
             state = STATE_RECOVERY
+        }
+        if(state == STATE_REACTION){
+            if((labs[0].mineralType && labs[0].store[labs[0].mineralType] < 5) || 
+            (labs[1].mineralType && labs[1].store[labs[1].mineralType] < 5)){
+                console.log(roomName + ' state change to STATE_RECOVERY','原料不足')
+                state = STATE_RECOVERY
+            }
         }
         if(state == STATE_RECOVERY){
             var allclear = true;
@@ -96,13 +112,13 @@ module.exports = {
                 if(lab.mineralType != undefined)allclear = false;
             });
             if(allclear){
-                console.log('state change to STATE_FILL')
+                console.log(roomName + ' state change to STATE_FILL')
                 state = STATE_FILL
             }
         }
         if(state == STATE_FILL){
             if(labs[0].store[materials[0]] >= amount && labs[1].store[materials[1]] >= amount){
-                console.log('state change to STATE_REACTION')
+                console.log(roomName + ' state change to STATE_REACTION')
                 state = STATE_REACTION
             }
             if(labs[0].mineralType && labs[0].mineralType != materials[0]){
@@ -112,16 +128,15 @@ module.exports = {
                 state = STATE_RECOVERY
             }
         }
-        Memory.lab[roomName].state = state;
         
-        //console.log('state is ',state)
+        
+        //console.log(roomName + ' state is ',state)
         // run state
         
         if(creep)creep.say('laber')
         if(state == STATE_REACTION && Game.time % REACTION_TIME[product] == 0){
             if(creep){
-                if(creep.ticksToLive < 1500)
-                    creepKill(creep)
+                creepKill(creep)
             }else{
                 if(willEnd()){
                     autoSpawnCreep(creepName);
@@ -129,8 +144,14 @@ module.exports = {
             }
             for(var i = 2;i<labs.length;i++){
                 if(labs[0] && labs[1] && labs[i]){
+
+                    if (labs[i].effect && labs[i].effect.length) {
+                        if (labs[0].store[materials[0]] < labs[i].effect[0].level * 2 + 5 || labs[1].store[materials[1]] < labs[i].effect[0].level * 2 + 5) {
+                            console.log(roomName + ' state change to STATE_RECOVERY','加power属性以后原料不足');
+                            state = STATE_RECOVERY;
+                        }
+                    }
                     if(labs[i].runReaction(labs[0],labs[1]) != OK){
-                        //console.log('wa')
                         state = STATE_RECOVERY;
                     }
                 }
@@ -178,6 +199,7 @@ module.exports = {
             }
         }
         
+        Memory.lab[roomName].state = state;
 
     }
 };
@@ -295,8 +317,7 @@ function autoSpawnCreep(creepName){
     }
 }
 function getAllType(type){
-    //console.log(['Z','K','U','L'].indexOf(type))
-    if(['Z','K','U','L','H','O','X'].indexOf(type) != -1)return 1000000
+    if(UNLIMITED_RESOURCES.indexOf(type) != -1)return 1000000
     var amount = 0;
     amount += room.storage.store[type]
     amount += room.terminal.store[type]
@@ -304,7 +325,11 @@ function getAllType(type){
         amount += lab.store[type];
     });
     if(creep)
-    amount += creep.store[type]
+        amount += creep.store[type]
+    let sup = Game.creeps['SUP_'+room.name]
+    if(sup){
+        amount += sup.store[type]
+    }
     return amount;
 }
 function pushMission(mission,roomName){

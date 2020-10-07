@@ -60,7 +60,7 @@ function build_task_storage(roomName){
 function build_task_towers(roomName){
     const towers = getStruct(roomName,'tower');
     for(let tower of towers){
-        if(tower.store.energy < 950){
+        if(tower.store.energy < 900){
             push_task(roomName,'energy','demand',tower)
         }
     }
@@ -81,7 +81,9 @@ function build_task_terminal(roomName){
     let room = Game.rooms[roomName]
     if(!terminal)return;
     if(room.controller.level < 8){
+        let storage = room.storage;
         if(terminal.store.energy){
+            if(!storage || storage.store.energy <= 50000)
             push_task(roomName,'energy','supply',terminal)
         }
     }else{
@@ -331,7 +333,10 @@ module.exports = {
             roomNames = ["E41N42","E41N35",'E39N51']
         }
         if(Game.shard.name == 'shard3'){
-            roomNames = ['W47N21','W43N27']
+            roomNames = ['W47N21','W43N27','E39N49']
+        }
+        if(Game.shard.name == 'shard1'){
+            roomNames = ['E39N51']
         }
         if(!roomNames)return;
         roomNames.forEach(roomName => {

@@ -12,7 +12,18 @@ var roleHarvester = {
     run: function(creep) {
         let room = creep.room;
         let shouldSleep = false;
-        if(Game.creeps['SUP_'+room.name] && room.energyCapacityAvailable-room.energyAvailable-energyUsdInSpawn(room) <= 0){
+        
+        let withDrawTarget;
+        if(Game.shard.name == 'shard3' && room.name != 'W47N21'){
+            old.run(creep)
+            return;
+        }
+        if(!Game.creeps['SUP_'+room.name] || !room.storage || !room.storage.store.energy || room.controller.level <8){
+            old.run(creep)
+            return;
+        }
+
+        if(room.energyCapacityAvailable-room.energyAvailable-energyUsdInSpawn(room) <= 0){
             creep.say('zzz')
             shouldSleep = true;
             if(Game.flags["Main_"+creep.room.name] && Game.time %2 == 0){
@@ -24,15 +35,6 @@ var roleHarvester = {
             //return;
         }
         
-        let withDrawTarget;
-        if(Game.shard.name == 'shard3' && room.name != 'W47N21'){
-            old.run(creep)
-            return;
-        }
-        if(!Game.creeps['SUP_'+room.name] || !room.storage || !room.storage.store.energy || room.controller.level <8){
-            old.run(creep)
-            return;
-        }
         const target = creep.pos.lookFor(LOOK_RESOURCES);
         if(target[0]) {
             creep.pickup(target[0]) 

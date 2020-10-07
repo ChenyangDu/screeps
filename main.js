@@ -1,4 +1,4 @@
-var linkCtrl = require('linkCtrl')
+var linkCtrl = require('linkCtrl') 
 var towerF = require('tower');
 var creepsManager = require('creeps.manager');
 var SourceKeeperCtrl = require('SourceKeeperCtrl')
@@ -41,6 +41,7 @@ const myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my)
     
 
 module.exports.loop = function () {
+
     require('prototype.Creep.move').moveCache.clear()
     
     Game.a = amountOf
@@ -64,8 +65,8 @@ module.exports.loop = function () {
     if(Game.time % 200 < 60){
         observe.run();
     }
-    
     deposit.ctrl();
+    
     power.run();
     task.run();
     if(Game.time % 10 == 0)terminalCtrl.run();
@@ -74,37 +75,9 @@ module.exports.loop = function () {
         
         if(Game.time % 10 <= 0){
                 //towerEstimate.run('W9S11','W11S22')
-                Game.market.deal('5e995a7d8d97a579c3d9df3f',5000,'W38N24')
+                
         }
     
-        
-        let tower = Game.getObjectById('5e88a62be49207e6aa87c4bc')
-        if(tower){
-            let fang = tower.room.find(FIND_CREEPS,{
-                filter:(o)=>(o.owner.username == 'fangxm' && o.hits < o.hitsMax)
-            })
-            if(fang.length){
-                tower.heal(fang[0])
-            }
-            //console.log(tower.heal(Game.getObjectById('5e88981d444aab6ef6c52e8c')))
-        }
-        let c = Game.creeps.SUP_W9S11;
-        if(c){
-            let spawn = c.room.terminal
-            let creep = Game.getObjectById('5e88aa22a29647173611b9ea')
-            if(creep ){
-                c.memory.role = null;
-                if(c.store.energy){
-                    c.moveTo(creep,{range:1})
-                    c.transfer(creep,'energy')
-                }else{
-                    c.moveTo(spawn,{range:1})
-                    c.withdraw(spawn,'energy')
-                }
-            }else{
-                c.memory.role = 'Nharvester'
-            }
-        }
         
         if(Game.time % 10 == 0){
             market.run();
@@ -124,10 +97,15 @@ module.exports.loop = function () {
             powerCtrl.run('W47N21')
             
         }
+
         
         PC1.run();
         
-        labCtrl.run('W38N26','GH2O',36000)
+        //labCtrl.run('W38N26','KH2O',36000)
+        labCtrl.run('W38N24','XLH2O',36000)
+        labCtrl.run('W43N27','GH2O',36000)
+        labCtrl.run('W39N26','XUHO2',36000)
+        //labCtrl.run('W47N21','XKHO2',36000)
         
     }
     if(Game.shard.name == 'shard2'){
@@ -140,7 +118,10 @@ module.exports.loop = function () {
         }
         //console.log(Game.spawns.Spawn1.spawnCreep([MOVE],'TT'))
         //Game.creeps.TT.moveTo(new RoomPosition(25,25,'E40N40'))
-        Game.getObjectById('5e67fda64ea07c97978e4edb').observeRoom('E40N40')
+        //Game.getObjectById('5e67fda64ea07c97978e4edb').observeRoom('E40N40')
+    }
+    if(Game.shard.name == 'shard1'){
+        autoConSite.run('E39N51')
     }
     autoConSite.test();
     if(Game.time % 10 == 0)market.energyBuy();
@@ -156,17 +137,24 @@ module.exports.loop = function () {
         if(creep.pos.isNearTo(flag)){
             creep.claimController(creep.room.controller)
             creep.signController(creep.room.controller,'星星之火，可以燎原。犯我中华，虽远必诛。')
-        }else{
-            creep.moveTo(flag,{range:1})
         }
         
+            creep.moveTo(flag)
+        
+        
     }
-    battle.run('W38N24',Game.flags.ATTACK)
-    battle.run('W38N24',Game.flags.ATTACK2)
+    //battle.run('W38N24',Game.flags.ATTACK)
+    //battle.run('W38N24',Game.flags.ATTACK2)
     /*
     Game.spawns.Spawn1.spawnCreep([CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,
         CARRY,CARRY,CARRY,CARRY,CARRY,
     WORK,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE],'TT')*/
+    if(0&&Game.time % 1500 == 800 && Game.shard.name == 'shard3'){
+        Game.rooms.W38N24.memory.spawnList.push({body:[CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,CARRY,
+            CARRY,CARRY,CARRY,CARRY,CARRY,
+        WORK,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE]
+        ,name:'TT'})
+    }
     creep = Game.creeps.TT;
     if(creep){//Game.creeps.TT.moveTo(new RoomPosition(25,25,'W50N20'))
         if(creep.store.energy){
@@ -177,24 +165,23 @@ module.exports.loop = function () {
                     creep.moveTo(creep.room.controller,{range:1})
                 }
             }else{
-                let path = [ 
-                    { shard: 'shard3', roomName: 'W40N20', x: 27, y: 19 },
-                { shard: 'shard2', roomName: 'W40N20', x: 34, y: 43 },
-                { shard: 'shard1', roomName: 'W40N20', x: 31, y: 10 },
-                { shard: 'shard0', roomName: 'W80N20', x: 31, y: 10 },
-                { shard: 'shard1', roomName: 'W40N10', x: 44, y: 16 },
-                { shard: 'shard0', roomName: 'W70N19', x: 35, y: 2 },
-                { shard: 'shard0', roomName: 'W61N20', x: 48, y: 34 },
-                { shard: 'shard0', roomName: 'W60S10', x: 43, y: 26 },
+                let path = [ { shard: 'shard3', roomName: 'W40N20', x: 27, y: 19 },
+                { shard: 'shard2', roomName: 'W40N10', x: 41, y: 19 },
+                { shard: 'shard1', roomName: 'W40N10', x: 17, y: 4 },
+                { shard: 'shard0', roomName: 'W70N11', x: 45, y: 48 },
+                { shard: 'shard0', roomName: 'W60N10', x: 11, y: 14 },
+                { shard: 'shard1', roomName: 'W30N10', x: 38, y: 37 },
+                { shard: 'shard0', roomName: 'W49N10', x: 1, y: 27 },
+                { shard: 'shard0', roomName: 'W50S20', x: 32, y: 45 },
                 { shard: 'shard1', roomName: 'W30S10', x: 43, y: 22 },
                 { shard: 'shard0', roomName: 'W60S19', x: 40, y: 48 },
                 { shard: 'shard0', roomName: 'W20S20', x: 35, y: 40 },
                 { shard: 'shard1', roomName: 'W10S10', x: 22, y: 18 },
-                { shard: 'shard2', roomName: 'W10S10', x: 25, y: 32 } ,
+                { shard: 'shard2', roomName: 'W10S10', x: 25, y: 32 },
                 { shard: 'shard3', roomName: 'W9S11', x: 14, y: 19 }
             ]
                 creep.moveTo(overShard.run(creep,path),{visualizePathStyle:{color:0xffffff}})
-                console.log(creep.pos,overShard.run(creep,path) )
+                //console.log(creep.pos,overShard.run(creep,path) )
             }
         }else{
             creep.moveTo(creep.room.storage)

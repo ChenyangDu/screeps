@@ -1,4 +1,4 @@
-var CostMatrix = {};
+var CostMatrix = {}; 
 const myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my)
 
 var enemy;

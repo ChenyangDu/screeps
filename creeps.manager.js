@@ -24,7 +24,7 @@ var creepsManager = {
         
         for(var name in Game.creeps) {
             var creep = Game.creeps[name];
-            if(Game.shard.name == 'shard2'){
+            if(Game.shard.name != 'shard2'){
                 if(creep.name.split('_')[0] == 'tmpBuilder' && !creep.memory.role){
                     creep.memory.role = 'tmpbuilder'
                 }
@@ -36,6 +36,7 @@ var creepsManager = {
                 }
                 
             }
+            try{
             switch(creep.memory.role){
                 case 'harvester':
                     roleHarvester.run(creep);break;
@@ -70,6 +71,7 @@ var creepsManager = {
                     repair.run(creep);
                     break;
             }
+            }catch(err){console.log(creep,err)}
             
         }
         
@@ -130,9 +132,12 @@ function tmpBuilder(creep){
                     creep.memory.mid = true;
                 }
             }else{
+                if(creep.pos.roomName == Game.flags.CLAIM.pos.roomName){
+                    creep.moveTo(Game.flags.CLAIM,{visualizePathStyle: {stroke: '#ffffff'},maxRooms:1})
+                }else
                 creep.moveTo(Game.flags.CLAIM,{visualizePathStyle: {stroke: '#ffffff'}})
                     
-                if(Game.shard.name == 'shard2' && creep.pos.inRangeTo(Game.flags['CLAIM'],10)){
+                if(Game.shard.name != 'shard2' && creep.pos.inRangeTo(Game.flags['CLAIM'],50)){
                     creep.memory.role = 'Nbuilder'
                 }
             }

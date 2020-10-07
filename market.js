@@ -5,7 +5,7 @@ const myOrders = [/*
         my_price:1,
         roomName:'W1N2',
         save:9*1000,
-    }*/{
+    }{
         type:'microchip',
         my_price:8000,
         roomName:'W38N26',
@@ -40,13 +40,13 @@ const myOrders = [/*
         my_price:1500,
         roomName:'W47N21',
         save:50,
-    },*/
+    },
     {
         type:'frame',
         my_price:6000,
         roomName:'W38N26',
         save:0,
-    },
+    },*/
 ]
 
 const needOrders = [
@@ -87,7 +87,7 @@ const needOrders = [
         type:'ops',
         price:2,
         save:3000
-    },{
+    },/*{
         type:'silicon',
         price:4,
         save:0
@@ -136,7 +136,7 @@ const needOrders = [
         type:'power',
         price:5,
         save:0
-    },
+    },*/
 ]
 module.exports = {
     run:function(){
