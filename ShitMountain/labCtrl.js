@@ -1,8 +1,6 @@
 /**********************************************
-
-author：ChenyangDu
-version:1.4
-
+author：ChenyangDu, Tracer
+version:1.5
 lab半自动
 
 【更新说明】：
@@ -10,6 +8,10 @@ lab半自动
 2、creep可以快结束反应时提前生产
 3、增加了适应operate_lab的情况
 4、可以分批提供原料，如果目标大于3000，将会拆解成若干个小的3000任务，所以可以一次设置很大的任务量
+
+5、修复了creep可能在即将进行下一个任务前自杀的情况
+6、修复了合成化合物时反复合成 5*8 原料的bug
+7、修复了有operate_lab的情况下错误进入RECOVERY的bug
 
 【使用方法】：
 1、需要占用Memory.lab，不要和其他代码冲突
@@ -22,19 +24,13 @@ lab半自动
 5、storage不要满，要不没地方放产物
 6、尽量科学摆放LAB（有两个lab离其他lab的距离<=2），代码会自动寻找生产效率最大的方式
 
-【代码部分】
-
+【代码部分】：
 var labCtrl = require('labCtrl')
-
 module.exports.loop = function () {
-
     labCtrl.run('W43N27',RESOURCE_GHODIUM,2000)
     labCtrl.run('W47N21','XGH2O',200000)
-
     //your code
-
 }
-
 ***************************************************/
 
 const STATE_FILL = 0
@@ -50,9 +46,9 @@ var room,needs,labs,creep
 module.exports = {
     run:function(roomName,need_type,need_amount){
         room = Game.rooms[roomName];
-        const creepName = 'laber' + roomName;
+        const creepName = 'Laber_' + roomName;
         creep = Game.creeps[creepName];
-        if(!initMemory(roomName))return;//这句是初始化用的，如果目标房间已经运行稳定了，就可以把这句删掉
+        if(!initMemory(roomName)) return;//这句是初始化用的，如果目标房间已经运行稳定了，就可以把这句删掉
         
         if(!need_type || !need_amount){
             console.log('ERROR: What do you want Room '+roomName+' do?')
@@ -75,15 +71,15 @@ module.exports = {
         need_amount += getAllType(need_type)
         
         pushMission([need_type,need_amount],roomName)
-        //console.log(roomName,needs) 
+        // console.log(roomName,needs) 
         if(needs.length >= 1){
-            var product = needs[needs.length-1][0],amount = Math.min(3000, needs[needs.length-1][1]);
+            var product = _.last(needs)[0], amount = Math.min(3000, _.last(needs)[1]);
             var materials = findMaterial(product)
         }else{
             console.log(roomName,'already has',need_amount,need_type)
         }
         if(amount % 5)amount += 5-amount%5;
-        //console.log(materials)
+        // console.log(materials);
         if(materials == null && needs.length >= 1){
             console.log('Room '+roomName+' need '+ amount + product)
         }
@@ -92,6 +88,8 @@ module.exports = {
                 creepKill(creep)
             return
         }
+        
+        // console.log(roomName + ' state is',state);
 
         //change state 
         
@@ -109,7 +107,7 @@ module.exports = {
         if(state == STATE_RECOVERY){
             var allclear = true;
             labs.forEach(lab => {
-                if(lab.mineralType != undefined)allclear = false;
+                if(lab.mineralType != undefined) allclear = false;
             });
             if(allclear){
                 console.log(roomName + ' state change to STATE_FILL')
@@ -128,31 +126,36 @@ module.exports = {
                 state = STATE_RECOVERY
             }
         }
+
         
-        
-        //console.log(roomName + ' state is ',state)
         // run state
         
-        if(creep)creep.say('laber')
-        if(state == STATE_REACTION && Game.time % REACTION_TIME[product] == 0){
-            if(creep){
-                creepKill(creep)
+        if(creep) creep.say('Saber')
+        if(state == STATE_REACTION && labs[0] && labs[1]){
+            let product=REACTIONS[labs[0].mineralType][labs[1].mineralType]; // 将product从 needs最后两种原料的制品 的改为 两个原料lab将要生产的制品
+            if(!willEnd()){ //如果还有用就先不杀
+                if(creep) creepKill(creep);
             }else{
-                if(willEnd()){
-                    autoSpawnCreep(creepName);
-                }
+                autoSpawnCreep(creepName);
             }
-            for(var i = 2;i<labs.length;i++){
-                if(labs[0] && labs[1] && labs[i]){
 
-                    if (labs[i].effect && labs[i].effect.length) {
-                        if (labs[0].store[materials[0]] < labs[i].effect[0].level * 2 + 5 || labs[1].store[materials[1]] < labs[i].effect[0].level * 2 + 5) {
-                            console.log(roomName + ' state change to STATE_RECOVERY','加power属性以后原料不足');
+            if(Game.time % REACTION_TIME[product] == 0){
+                for(var i = 2;i<labs.length;i++){
+                    if(labs[0] && labs[1] && labs[i]){
+                        
+                        new RoomVisual(roomName).text(i,labs[i].pos,{color: 'white', font: 0.5});
+    
+                        if (labs[i].effect && labs[i].effect.length) {
+                            if (labs[0].store[labs[0].mineralType] < labs[i].effect[0].level * 2 + 5 || labs[1].store[labs[1].mineralType] < labs[i].effect[0].level * 2 + 5) { // 修复
+                                console.log(roomName + ' state change to STATE_RECOVERY','加power属性以后原料不足');
+                                state = STATE_RECOVERY;
+                            }
+                        }
+                        
+                        if(labs[i].runReaction(labs[0],labs[1]) != OK){ // 如果前面没有修改为正确的product, 这里将因为cd进入 RECOVERY 阶段。
+                            // console.log(i,labs[0],labs[1],labs[i].runReaction(labs[0],labs[1]));
                             state = STATE_RECOVERY;
                         }
-                    }
-                    if(labs[i].runReaction(labs[0],labs[1]) != OK){
-                        state = STATE_RECOVERY;
                     }
                 }
             }
@@ -208,7 +211,7 @@ function willEnd(){
     if(!labs[0].mineralType || !labs[1].mineralType){
         return true;
     }
-    return Math.min(labs[0].store.getUsedCapacity(labs[0].mineralType),labs[1].store.getUsedCapacity(labs[1].mineralType))/
+    return Math.min(labs[0].store.getUsedCapacity(labs[0].mineralType),labs[1].store.getUsedCapacity(labs[1].mineralType)) / 5 /
         (labs.length - 2) < body.length * 3;
 }
 
@@ -291,7 +294,8 @@ function WAT(creep,withdrawTarget,transferTarget,type,amount){
         amount = Math.min(amount,withdrawTarget.store[type]);
         creep.moveTo(withdrawTarget,{range:1})
         if(creep.pos.isNearTo(withdrawTarget)){
-            creep.withdraw(withdrawTarget,type,amount)
+            if(creep.withdraw(withdrawTarget,type,amount)==OK)
+                creep.moveTo(transferTarget)
         }
     }else{
         //console.log(withdrawTarget,creep.store.getFreeCapacity(type),withdrawTarget.store[type])
@@ -304,7 +308,8 @@ function WAT(creep,withdrawTarget,transferTarget,type,amount){
         }else{
             creep.moveTo(transferTarget)
             if(creep.pos.isNearTo(transferTarget)){
-                creep.transfer(transferTarget,type)
+                if(creep.transfer(transferTarget,type)==OK)
+                    creep.moveTo(withdrawTarget)
             }
         }
     }
@@ -317,7 +322,7 @@ function autoSpawnCreep(creepName){
     }
 }
 function getAllType(type){
-    if(UNLIMITED_RESOURCES.indexOf(type) != -1)return 1000000
+    if(UNLIMITED_RESOURCES.indexOf(type) != -1) return 1000000;
     var amount = 0;
     amount += room.storage.store[type]
     amount += room.terminal.store[type]
@@ -326,7 +331,7 @@ function getAllType(type){
     });
     if(creep)
         amount += creep.store[type]
-    let sup = Game.creeps['SUP_'+room.name]
+    let sup = Game.creeps['Laber_'+room.name]
     if(sup){
         amount += sup.store[type]
     }
