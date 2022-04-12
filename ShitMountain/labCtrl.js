@@ -1,6 +1,6 @@
 /**********************************************
 author：ChenyangDu, Tracer
-version:1.5
+version:1.6
 lab半自动
 
 【更新说明】：
@@ -9,9 +9,12 @@ lab半自动
 3、增加了适应operate_lab的情况
 4、可以分批提供原料，如果目标大于3000，将会拆解成若干个小的3000任务，所以可以一次设置很大的任务量
 
-5、修复了creep可能在即将进行下一个任务前自杀的情况
-6、修复了合成化合物时反复合成 5*8 原料的bug
-7、修复了有operate_lab的情况下错误进入RECOVERY的bug
+5、修复了creep只有在跑反应那一tick才动的bug
+6、修复了creep可能在即将进行下一个任务前自杀的情况
+7、修复了合成化合物时反复合成 5*8 原料的bug
+8、修复了有operate_lab的情况下错误进入RECOVERY的bug
+9、修复了1.5版本修复导致的willEnd()计算错误
+10、修复了在REACTION状态下仍因资源不足开摆的bug
 
 【使用方法】：
 1、需要占用Memory.lab，不要和其他代码冲突
@@ -83,9 +86,9 @@ module.exports = {
         if(materials == null && needs.length >= 1){
             console.log('Room '+roomName+' need '+ amount + product)
         }
-        if(materials == null){
+        if(materials == null && state != STATE_REACTION){
             if(creep)
-                creepKill(creep)
+                creepKill(creep);
             return
         }
         
@@ -211,8 +214,9 @@ function willEnd(){
     if(!labs[0].mineralType || !labs[1].mineralType){
         return true;
     }
-    return Math.min(labs[0].store.getUsedCapacity(labs[0].mineralType),labs[1].store.getUsedCapacity(labs[1].mineralType)) / 5 /
-        (labs.length - 2) < body.length * 3;
+    if(labs.length == 2) return false;
+    return Math.min(labs[0].store.getUsedCapacity(labs[0].mineralType),labs[1].store.getUsedCapacity(labs[1].mineralType)) / 5 / 
+        (labs.length - 2) * REACTION_TIME[REACTIONS[labs[0].mineralType][labs[1].mineralType]] < body.length * 3;
 }
 
 function initMemory(roomName){
