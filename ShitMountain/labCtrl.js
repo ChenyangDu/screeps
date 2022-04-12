@@ -298,7 +298,7 @@ function WAT(creep,withdrawTarget,transferTarget,type,amount){
         amount = Math.min(amount,withdrawTarget.store[type]);
         creep.moveTo(withdrawTarget,{range:1})
         if(creep.pos.isNearTo(withdrawTarget)){
-            if(creep.withdraw(withdrawTarget,type,amount)==OK)
+            if(creep.withdraw(withdrawTarget,type,amount)==OK && transferTarget)
                 creep.moveTo(transferTarget)
         }
     }else{
@@ -312,7 +312,7 @@ function WAT(creep,withdrawTarget,transferTarget,type,amount){
         }else{
             creep.moveTo(transferTarget)
             if(creep.pos.isNearTo(transferTarget)){
-                if(creep.transfer(transferTarget,type)==OK)
+                if(creep.transfer(transferTarget,type)==OK && withdrawTarget)
                     creep.moveTo(withdrawTarget)
             }
         }
