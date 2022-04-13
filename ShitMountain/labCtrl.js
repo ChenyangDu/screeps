@@ -1,6 +1,6 @@
 /**********************************************
 author：ChenyangDu, Tracer
-version:1.6
+version:1.6.1
 lab半自动
 
 【更新说明】：
