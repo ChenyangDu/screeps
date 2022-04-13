@@ -44,6 +44,8 @@ const body = [CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOV
 //lab专用creep的身体部件，如果嫌多，或者嫌少，自行调整
 const UNLIMITED_RESOURCES = ['Z','K','U','L','H','O','X'];//如果你的房间物流能够保证提供这些基础矿物，那么程序会默认这些矿物数量为无穷大
 
+var queen_name="SUP_${room.name}"; // 中心搬运工名字，用于包含在化合物数量统计中
+
 var room,needs,labs,creep
 
 module.exports = {
@@ -68,10 +70,12 @@ module.exports = {
         });
         
         needs = new Array();
+
+        let cache_amount=getAllType(need_type); // 省一点cpu
         
-        need_amount = need_amount - getAllType(need_type)
+        need_amount = need_amount - cache_amount
         if(need_amount > 3000) need_amount = 3000;
-        need_amount += getAllType(need_type)
+        need_amount += cache_amount
         
         pushMission([need_type,need_amount],roomName)
         // console.log(roomName,needs) 
@@ -328,16 +332,16 @@ function autoSpawnCreep(creepName){
 function getAllType(type){
     if(UNLIMITED_RESOURCES.indexOf(type) != -1) return 1000000;
     var amount = 0;
-    amount += room.storage.store[type]
-    amount += room.terminal.store[type]
+    amount += room.storage.store[type];
+    amount += room.terminal.store[type];
     labs.forEach(lab => {
         amount += lab.store[type];
     });
     if(creep)
-        amount += creep.store[type]
-    let sup = Game.creeps['Laber_'+room.name]
+        amount += creep.store[type];
+    let sup = Game.creeps[queen_name.replace('${room.name}',room.name)];
     if(sup){
-        amount += sup.store[type]
+        amount += sup.store[type];
     }
     return amount;
 }
