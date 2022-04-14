@@ -580,8 +580,8 @@ function spawnCreep(work,room){
     if(needToSpawn(work,room)){
         let body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE],room.energyCapacityAvailable)
         work.creepCapacity = body.length/3*100;
-        spawnCtrl.addSpawnListEmergency(room.name,body,'carryer'+Game.time%1000,
-        {memory:{role:"carryer"}});
+        // spawnCtrl.addSpawnList(room.name,body,'carryer'+Game.time%1000,
+        // {memory:{role:"carryer"}},3);
     }
 }
 

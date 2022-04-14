@@ -1,57 +1,7 @@
 var roleHarvester = {
     /** @param {Creep} creep **/
     getEnergy:function(creep){
-        var harvestTarget = Game.getObjectById(creep.memory.harvestTarget);
-        
-        if(!harvestTarget)
-            harvestTarget = Game.getObjectById(creep.memory.harvestTarget);
-        if(!canBeHarvestd(creep,harvestTarget))harvestTarget = null;
-        
-        if(!harvestTarget){
-            let tStorage = creep.room.tStorage();
-            var container = creep.pos.findClosestByPath(FIND_STRUCTURES,{
-                filter:(struct) => {
-                    if(creep.memory.role == 'harvester' || creep.memory.role == 'Nharvester'){
-                        if(tStorage && struct.id == tStorage.id)return false;
-                    }
-                    return ((struct.structureType == STRUCTURE_CONTAINER ||
-                        struct.structureType == STRUCTURE_STORAGE || 
-                        struct.structureType == STRUCTURE_TERMINAL)
-                        && struct.store[RESOURCE_ENERGY] >= Math.min(400, creep.carryCapacity)) 
-                    //|| (struct.structureType == STRUCTURE_LINK && Memory.inputLinks[creep.room.name][struct.id] == false && struct.energy >= Math.min(400, creep.carryCapacity))
-                    //&& struct.id != tStorage.id
-                }
-            })
-            harvestTarget = container;
-        }
-        
-        let resource = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES,{
-            filter:(o)=>(o.resourceType == RESOURCE_ENERGY)
-        });
-        if(resource){
-            if(!harvestTarget){
-                harvestTarget = resource;
-            }else{
-                // let path_hT = PathFinder.search(creep.pos,harvestTarget)
-                // let path_resource = PathFinder.search(creep.pos,resource)
-                // if(path_hT.cost > path_resource.cost){
-                //     harvestTarget = resource;
-                // }
-            }
-        }
-        if(!harvestTarget && creep.room.controller && creep.room.controller.level == 8 && creep.room.terminal &&
-            creep.room.terminal.store[RESOURCE_ENERGY] >= 75000){
-                harvestTarget = creep.room.terminal;
-            }
-        
-        var storage = creep.room.storage;
-        if(!harvestTarget &&storage&& storage.store[RESOURCE_ENERGY]>=200)harvestTarget = storage;
-        
-        if(!harvestTarget && creep.room.controller && creep.room.controller.level < 8 && creep.room.terminal &&
-            creep.room.terminal.store[RESOURCE_ENERGY] >= creep.carryCapacity){
-                harvestTarget = creep.room.terminal;
-            }
-        
+        const harvestTarget = findWithdrawTarget(creep)
         
         if(harvestTarget){
             creep.memory.harvestTarget = harvestTarget.id;
@@ -181,19 +131,19 @@ function findTransferTarget(creep,exptID=null){
 
     if(!transferTarget){
         transferTarget = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-                filter: (structure) => {
-                    if(structure.id == exptID)return false;
-                    return (structure.structureType == STRUCTURE_CONTAINER ||
-                        structure.structureType == STRUCTURE_EXTENSION || 
-                        structure.structureType == STRUCTURE_LAB || 
-                        //structure.structureType == STRUCTURE_NUKER || 
-                        (structure.structureType == STRUCTURE_POWER_SPAWN && structure.energy <= 4500) || 
-                        (structure.structureType == STRUCTURE_TOWER && 
-                            (structure.energy < 700 || (structure.energy<=900 && creep.room.energyAvailable >= 0.9*creep.room.energyCapacityAvailable))) || 
-                        (structure.structureType == STRUCTURE_SPAWN )
-                        )&&
-                        structure.energy < structure.energyCapacity;
-                }
+            filter: (structure) => {
+                if(structure.id == exptID)return false;
+                return (structure.structureType == STRUCTURE_CONTAINER ||
+                    structure.structureType == STRUCTURE_EXTENSION || 
+                    structure.structureType == STRUCTURE_LAB || 
+                    //structure.structureType == STRUCTURE_NUKER || 
+                    (structure.structureType == STRUCTURE_POWER_SPAWN && structure.energy <= 4500) || 
+                    (structure.structureType == STRUCTURE_TOWER && 
+                        (structure.energy < 700 || (structure.energy<=900 && creep.room.energyAvailable >= 0.9*creep.room.energyCapacityAvailable))) || 
+                    (structure.structureType == STRUCTURE_SPAWN )
+                    )&&
+                    structure.energy < structure.energyCapacity;
+            }
         });
     }
     
@@ -238,7 +188,66 @@ function findTransferTarget(creep,exptID=null){
     return transferTarget;
 }
 
-// 判断能不能从target里面获得能量
+function findWithdrawTarget(creep){
+    var harvestTarget = Game.getObjectById(creep.memory.harvestTarget);
+        
+    if(!harvestTarget)
+        harvestTarget = Game.getObjectById(creep.memory.harvestTarget);
+    if(!canBeHarvestd(creep,harvestTarget))harvestTarget = null;
+    
+    if(!harvestTarget){
+        let tStorage = creep.room.tStorage();
+        var container = creep.pos.findClosestByPath(FIND_STRUCTURES,{
+            filter:(struct) => {
+                if(creep.memory.role == 'harvester' || creep.memory.role == 'Nharvester'){
+                    if(tStorage && struct.id == tStorage.id)return false;
+                }
+                return ((struct.structureType == STRUCTURE_CONTAINER ||
+                    struct.structureType == STRUCTURE_STORAGE || 
+                    struct.structureType == STRUCTURE_TERMINAL)
+                    && struct.store[RESOURCE_ENERGY] >= Math.min(400, creep.carryCapacity)) 
+                //|| (struct.structureType == STRUCTURE_LINK && Memory.inputLinks[creep.room.name][struct.id] == false && struct.energy >= Math.min(400, creep.carryCapacity))
+                //&& struct.id != tStorage.id
+            }
+        })
+        harvestTarget = container;
+    }
+    
+    let resource = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES,{
+        filter:(o)=>(o.resourceType == RESOURCE_ENERGY)
+    });
+    if(resource){
+        if(!harvestTarget){
+            harvestTarget = resource;
+        }else{
+            // let path_hT = PathFinder.search(creep.pos,harvestTarget)
+            // let path_resource = PathFinder.search(creep.pos,resource)
+            // if(path_hT.cost > path_resource.cost){
+            //     harvestTarget = resource;
+            // }
+        }
+    }
+    if(!harvestTarget && creep.room.controller && creep.room.controller.level == 8 && creep.room.terminal &&
+        creep.room.terminal.store[RESOURCE_ENERGY] >= 75000){
+            harvestTarget = creep.room.terminal;
+        }
+    
+    var storage = creep.room.storage;
+    if(!harvestTarget &&storage&& storage.store[RESOURCE_ENERGY]>=200)harvestTarget = storage;
+    
+    if(!harvestTarget && creep.room.controller && creep.room.controller.level < 8 && creep.room.terminal &&
+        creep.room.terminal.store[RESOURCE_ENERGY] >= creep.carryCapacity){
+            harvestTarget = creep.room.terminal;
+        }
+    return harvestTarget
+}
+
+/**
+ * 判断能不能从target里面获得能量
+ * @param {Creep} creep 
+ * @param {*} target 
+ * @returns 
+ */
 function canBeHarvestd(creep,target){
     var ok = false;
     if(!target)return false;
@@ -246,7 +255,7 @@ function canBeHarvestd(creep,target){
     if(target.resourceType)ok = true;
     switch(target.structureType){
         case STRUCTURE_CONTAINER :
-            if(target.store[RESOURCE_ENERGY] >= Math.min(400, creep.carryCapacity))ok = true;
+            if(target.store[RESOURCE_ENERGY] >= Math.min(400, creep.store.getFreeCapacity('energy')))ok = true;
             break;
         case STRUCTURE_LINK:
             if(Memory.inputLinks[target.room.name][target.id] == false && target.energy >= Math.min(400, creep.carryCapacity))
@@ -256,7 +265,7 @@ function canBeHarvestd(creep,target){
             if(target.store[RESOURCE_ENERGY] > 0)ok = true;
             break;
         case STRUCTURE_TERMINAL:
-            if(target.store[RESOURCE_ENERGY] >= creep.carryCapacity)ok = true;
+            if(target.store[RESOURCE_ENERGY] >= creep.store.getFreeCapacity('energy'))ok = true;
             break;
     }
     return ok;

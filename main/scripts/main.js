@@ -5,6 +5,8 @@ let autoOutMiner = require("autoOutMiner")
 let spawnCtrl = require("spawnCtrl")
 let tower = require("tower")
 let carryTaskCtrl = require("carryTaskCtrl")
+let carryCtrl = require("carryCtrl")
+let carryEnergy = require("carryEnergy")
 
 require('prototype.Creep.move')
 require('prototype.Room')
@@ -17,7 +19,11 @@ module.exports.loop = function () {
     // 矿机第一
     SourceKeeperCtrl.run();
 
-    // 生产harvetser builder upgrader
+    //初始化
+    baseCreep.init();
+    carryCtrl.init();
+
+    // 生产并运行harvetser builder upgrader
     baseCreep.run();
 
     // 外矿
@@ -32,6 +38,10 @@ module.exports.loop = function () {
 
     //tower
     tower.run()
+
+    try{
+        carryEnergy.run()
+    }catch(err){console.log(err.stack)}
 
     //carryTask
     // try{

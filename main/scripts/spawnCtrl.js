@@ -1,30 +1,39 @@
+/**
+ * 【功能】本模块的主要功能是提供spawn服务
+ * 
+ * 【结构】
+ * 每个房间room.memory.spawnList包含了一个等待spawn的列表
+ * 其中包含{body,name,opt,priority}四个属性
+ * priority为优先级
+ * 优先级总共分为1-10级，默认5级
+ * 1级：万能harvester
+ * 2级：矿机
+ * 3级：搬运工
+ * 
+ */
 module.exports = {
     /**
-     * 
-     * @param {*} roomName 
-     * @param {*} body 
-     * @param {*} name 
-     * @param {*} opt 
-     * @returns 
+     * 向列表中添加一个creep
+     * 插入到同等优先级的最后一位
+     * addSpawnList(roomName,body,name,opt)
      */
     addSpawnList,
-    addSpawnListEmergency,
-    
-    getbody(initpart,looppart,cap,maxLen = 50){
-        let body = initpart;
-        let cost = getcost(initpart);
-        let loopcost = getcost(looppart);
-        while(cost + loopcost <= cap && body.length + looppart.length <= maxLen){
-            cost += loopcost;
-            body = body.concat(looppart);
-        }
-        return body;
-    },
+
+    /**
+     * 判断是否有空余的spawn
+     * haveFreeSpawn(roomName)
+     */
+    haveFreeSpawn,
+
+    /**
+     * 用一小段part拼接最长的part
+     * getbody(initpart,looppart,maxcost,maxLen = 50)
+     */
+    getbody,
+
     /**
      * 获取房间中的等待spawn的列表
-     * @param {*} room :Room
-     * @param {*} fit  一个函数用来过滤列表，默认为返回真
-     * @returns 
+     * getList(room,fit = ()=>true)
      */
     getList,
 
@@ -34,7 +43,7 @@ module.exports = {
     spawn,
 }
 
-function addSpawnList(roomName,body,name,opt){
+function addSpawnList(roomName,body,name,opt,priority=5){
     let room = Game.rooms[roomName]
     if(room){
         if(!room.memory.spawnList)room.memory.spawnList = [];
@@ -42,7 +51,11 @@ function addSpawnList(roomName,body,name,opt){
         for(let pre of list){
             if(pre.name == name)return;
         }
-        room.memory.spawnList.push({body:body,name:name,opt:opt})
+        let index = 0
+        for(;index < list.length;index++){
+            if(list[index].priority > priority)break;
+        }
+        room.memory.spawnList.splice(index,0,{body,name,opt,priority})
     }
 }
 
@@ -60,6 +73,21 @@ function addSpawnListEmergency(roomName,body,name,opt){
         }
         room.memory.spawnList.unshift({body:body,name:name,opt:opt})
     }
+}
+
+function haveFreeSpawn(roomName){
+    return getFreeSpawn(roomName) !== null;
+}
+
+function getbody(initpart,looppart,maxcost,maxLen = 50){
+    let body = initpart;
+    let cost = getcost(initpart);
+    let loopcost = getcost(looppart);
+    while(cost + loopcost <= maxcost && body.length + looppart.length <= maxLen){
+        cost += loopcost;
+        body = body.concat(looppart);
+    }
+    return body;
 }
 
 function getFreeSpawn(roomName){
@@ -82,8 +110,9 @@ function getList(room,fit = ()=>true){
 function spawn(){
     for(let room of Game.myrooms){
         let list = room.memory.spawnList
+
         if(list && list.length){
-            let spawn = this.getFreeSpawn(room.name)
+            let spawn = getFreeSpawn(room.name)
             if(spawn){
                 let callback = spawn.spawnCreep(list[0].body,list[0].name,list[0].opt)
                 
@@ -92,13 +121,13 @@ function spawn(){
                     list.splice(0,1)
             }
         }
-        if(Game.time % 23 == 0){
-            for(let i in list){
-                if(i != 0 && isHarvester(list[i])){
-                    [list[0],list[i]] = [list[i],list[0]]
-                }
-            }
-        }
+        // if(Game.time % 23 == 0){
+        //     for(let i in list){
+        //         if(i != 0 && isHarvester(list[i])){
+        //             [list[0],list[i]] = [list[i],list[0]]
+        //         }
+        //     }
+        // }
     }
 }
 

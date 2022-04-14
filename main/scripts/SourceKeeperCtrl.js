@@ -33,6 +33,17 @@ const needContainer = true;
 const needToSaveCpu = true;//可以生产10WORK的creep快速挖矿，然后休息，用能量换CPU的方法
 const usdCreepMove_Yuan = false;//如果你使用了Yuandiaodiaodiao所写的对穿，那么可以把这个设置为true，要不然新老creep交替会鬼畜
 
+module.exports = {
+    run:function(){
+        for(var flagName in Game.flags){
+            var flag = Game.flags[flagName]
+            if(flag.color == COLOR_YELLOW && flag.secondaryColor == COLOR_YELLOW){
+                flagRun(flag)
+            }
+        }
+    }
+};
+
 function flagRun(flag){
     const creep0 = Game.creeps[flag.name + '_0']
     const creep1 = Game.creeps[flag.name + '_1']
@@ -60,43 +71,33 @@ function flagRun(flag){
     }
 
     if(needToSpawnName){
-        var spawn = spawnCtrl.getFreeSpawn(flag.pos.roomName)
-        if(spawn){
+        
+        if(spawnCtrl.haveFreeSpawn(flag.pos.roomName)){
+            let room = flag.room
             //这里的body如不满意可以自行调整
             var body = [WORK,WORK,MOVE]
-            var energyHave = spawn.room.energyCapacityAvailable
+            var energyHave = room.energyCapacityAvailable
             if(energyHave >= 350){
                 body = [WORK,WORK,WORK,MOVE]
             }
             if(energyHave >= 450){
                 body = [WORK,WORK,WORK,WORK,MOVE]
             }
-            if(spawn.room.energyCapacityAvailable >= 550){
+            if(room.energyCapacityAvailable >= 550){
                 body = [WORK,WORK,WORK,WORK,WORK,MOVE]
             }
-            if(spawn.room.energyCapacityAvailable >= 700){
+            if(room.energyCapacityAvailable >= 700){
                 body = [MOVE,MOVE,MOVE,CARRY,WORK,WORK,WORK,WORK,WORK]
             }
-            if(needToSaveCpu && spawn.room.energyCapacityAvailable >= 2000){
+            if(needToSaveCpu && room.energyCapacityAvailable >= 2000){
                 body = [MOVE,MOVE,MOVE,CARRY,WORK,WORK,WORK,WORK,WORK,
                     MOVE,MOVE,WORK,WORK,WORK,WORK,WORK]
             }
-            spawnCtrl.addSpawnListEmergency(flag.pos.roomName,body,needToSpawnName)
+            spawnCtrl.addSpawnList(flag.pos.roomName,body,needToSpawnName,{},priority=1)
             // spawn.spawnCreep(body,needToSpawnName)
         }
     }
 }
-
-module.exports = {
-    run:function(){
-        for(var flagName in Game.flags){
-            var flag = Game.flags[flagName]
-            if(flag.color == COLOR_YELLOW && flag.secondaryColor == COLOR_YELLOW){
-                flagRun(flag)
-            }
-        }
-    }
-};
 
 //这部分主要负责控制creep
 function SourceKeeper (creep,flag){

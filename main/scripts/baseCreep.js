@@ -1,5 +1,6 @@
 /**
  * 负责harvester upgrader builder
+ * 以及统计所有的carryers
  */
 var roleHarvester = require('role.harvester');
 var roleUpgrader = require('role.upgrader');
@@ -15,48 +16,70 @@ module.exports = {
     run(){
         runCreep();
         spawnCreep();
+    },
+    init,
+    getAllCreeps(){
+        return allCreeps
+    }
+}
+
+function init(){
+    allCreeps = {}
+    for(let name in Game.creeps){
+        let creep = Game.creeps[name]
+        let roomName = creep.room.name;
+
+        if(!allCreeps[roomName])allCreeps[roomName] = {}
+        
+        switch(creep.memory.role){
+            case 'harvester':
+                addCnt(roomName,creep);break;
+            case 'upgrader':
+                addCnt(roomName,creep);break;
+            case 'builder':
+                addCnt(roomName,creep);break;
+            case 'carryer':
+                addCnt(roomName,creep);break;
+        }
+        
     }
 }
 
 function runCreep(){
-    allCreeps = {}
+    
     // 搬运任务初始化
     carryTaskCtrl.registClear();
 
     // 是否有建筑点
     let havConstructionSites = {};
     for(let room of Game.myrooms){
-        if(Game.time % 20 == 0 && room.find(FIND_CONSTRUCTION_SITES).length)
+        if(Game.time % 23 == 0 && room.find(FIND_CONSTRUCTION_SITES).length)
             havConstructionSites[room.name] = true;
     }
 
-    for(let name in Game.creeps){
-        let creep = Game.creeps[name]
-        let roomName = creep.room.name;
-
-        if(!allCreeps[roomName])allCreeps[roomName] = {}
-        try{
-            switch(creep.memory.role){
-                case 'harvester':
-                    addCnt(roomName,creep);
-                    roleHarvester.run(creep);break;
-                case 'upgrader':
-                    addCnt(roomName,creep);
-                    // 如果存在建造点就变成builder
-                    if(havConstructionSites[roomName]){
-                        creep.memory.role = 'builder'
-                        roleBuilder.run(creep);break;
-                    }
-                    roleUpgrader.run(creep);
-                    break;
-                case 'builder':
-                    addCnt(roomName,creep);
-                    roleBuilder.run(creep);break;
-                case 'carryer':
-                    carryTaskCtrl.regist(creep);
-                    break;
+    for(let roomName in allCreeps){
+        // harvester
+        let creeps = allCreeps[roomName]["harvester"]
+        if(creeps && creeps.length)
+            for(let creep of creeps){
+                // roleHarvester.run(creep);
             }
-        }catch(err){console.log(err.stack)}
+        // upgrader
+        creeps = allCreeps[roomName]["upgrader"]
+        if(creeps && creeps.length)
+            for(let creep of creeps){
+                if(havConstructionSites[roomName]){
+                    creep.memory.role = 'builder'
+                    roleBuilder.run(creep);
+                }
+                roleUpgrader.run(creep);
+            }
+        // builder
+        creeps = allCreeps[roomName]["builder"]
+        if(creeps && creeps.length)
+            for(let creep of creeps){
+                roleBuilder.run(creep);
+            }
     }
 }
 /**
@@ -83,6 +106,7 @@ function spawnCreep(){
 }
 
 function spawnListHaveRole(room,role){
+    return spawnCtrl.getList(room,o=>o.opt && o.opt.memory && o.opt.memory.role == role).length > 0
     let spawnList = null;
     if(room.memory)
         spawnList = room.memory.spawnList;
@@ -120,14 +144,14 @@ function needHarvester(room){
     // todo 如果upgrader/builder较多
     
     // return !haveEnergyIncome(room)
-    // 下面是旧的判断方法
-    let max_sum_harvesters = 1
+    
+    let max_sum_harvesters
     if(!allCreeps[room.name])allCreeps[room.name] = {}
     let harvesters = getCnt(room.name,"harvester");
     let upgraders = getCnt(room.name,"upgrader")+getCnt(room.name,"builder");
     
     if(room.controller.level < 8){
-        max_sum_harvesters = Math.max(2,upgraders/2)
+        max_sum_harvesters = Math.max(1,(upgraders-1)/2)
     }
     if(room.controller.level == 8){
         max_sum_harvesters = 1;
@@ -141,7 +165,7 @@ function spawnHarvesterReal(room){
     var body = [];
     let energyAvai = room.energyCapacityAvailable;
     let harvesters = getCnt(room.name,"harvester");
-    
+    let priority = 3
 
     if(haveEnergyIncome(room)){
         // 如果房间中有矿机
@@ -165,10 +189,11 @@ function spawnHarvesterReal(room){
             cost += baseCost
             body = body.concat(baseBody)
         }
+        priority = 2
     }
-    spawnCtrl.addSpawnListEmergency(room.name,body,
+    spawnCtrl.addSpawnList(room.name,body,
         'harvester'+Game.time%1000,
-        {memory:{role:'harvester',harvesting : false}})
+        {memory:{role:'harvester',harvesting : false}},priority)
 }
 /**
  * 判断房间是否有能量来源
@@ -223,7 +248,7 @@ function needUpgrader(room){
         needToSpawn = true;
     }else if(room.controller.level <8){
         //console.log(energyInContainer(room))
-        if(upgraders < 1 || energyInContainer(room) >= 666 )
+        if(upgraders < 1 || energyInContainer(room) >= 1000 )
             needToSpawn = true;
         if(room.storage && room.storage.store[RESOURCE_ENERGY] >= 25*1000){
             needToSpawn = true;
@@ -286,7 +311,8 @@ function spawnUpgraderReal(room){
 function energyInContainer(room){
     var amount = 0;
     let containers = room.find(FIND_STRUCTURES,{
-        filter:(o)=>(o.structureType == STRUCTURE_CONTAINER)
+        filter:(o)=>(o.structureType == STRUCTURE_CONTAINER && 
+            o.pos.lookFor(LOOK_FLAGS).length)
     })
     containers.forEach(container => {
         amount += container.store[RESOURCE_ENERGY]
