@@ -64,12 +64,12 @@ module.exports = {
             transferTargets.forEach(t => {
                 str += t.structureType + ' '
             });
-            console.log(str)
+            // console.log(str)
 
             // 借用creep
             
             if(needBorrow(creeps,withdrawTargets,transferTargets,capacity)){
-                let creepName = carryCtrl.borrowCreep(room)
+                let creepName = carryCtrl.borrowCreep(room,60)
                 if(creepName && Game.creeps[creepName]){
                     creeps.push(Game.creeps[creepName])
                     creepNames.push({name:creepName})
@@ -90,7 +90,6 @@ module.exports = {
                     
                     let target = findTransferTarget(creep,transferTargets)
                     if(target){
-                        console.log(creep,target,'transfer')
                         if(creepTransfer(creep,target)){
                             carryCtrl.returnCreep(room,creep.name)
                             creeps.splice(i,1)
@@ -166,8 +165,7 @@ module.exports = {
 function needBorrow(creeps,withdrawTargets,transferTargets,capacity){
     if (withdrawTargets.length && transferTargets.length){
         if(creeps.length == 0)return true;
-        if(creeps.length < 2 &&
-            Math.min(withdrawTargets.length,transferTargets.length) >= 2){
+        if(creeps.length < 2 && withdrawTargets.length >= 2){
                 return true
         }
         if(_.sum(transferTargets,(o)=>{
@@ -245,6 +243,8 @@ function findWithdrawTarget(creep,withdrawTargets){
                     if(struct.est_energy >= Math.min(400, creep.store.getFreeCapacity('energy')))
                         return true;
                     break;
+                case STRUCTURE_LINK:
+                    if(struct.est_energy > 0)return true;
                 default:
                     return struct.est_energy >= creep.store.getFreeCapacity("energy")
             }
@@ -272,6 +272,10 @@ function findWithdrawTargets(room,capacity){
             struct.store[RESOURCE_ENERGY] >= Math.min(400, capacity)
         }
     })
+    let centerLink = room.centerLink()
+    if(centerLink && centerLink.store.getUsedCapacity("energy") > 0){
+        withdrawTargets.push(centerLink)
+    }
     withdrawTargets.concat(room.find(FIND_TOMBSTONES,{
         filter:o=>{
             return o.store[RESOURCE_ENERGY] > 0

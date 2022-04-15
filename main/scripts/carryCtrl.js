@@ -79,7 +79,8 @@ function getAvgCapacity(roomName){
 function borrowCreep(room,ticks = 50){
     let creeps = room.memory.carryctrl.carryers
     for(let creep of creeps){
-        if(!creep.used && Game.creeps[creep.name] 
+        if(!creep.used && Game.creeps[creep.name] &&
+            !Game.creeps[creep.name].spawning
             && Game.creeps[creep.name].ticksToLive >= ticks){
 
             creep.used = true
@@ -138,7 +139,7 @@ function needCarryer(room){
     let carryers = allCreeps[room.name]["carryer"]
     let maxTicks = 0;
     carryers.forEach(carryer=>{
-        maxTicks = _.max([maxTicks,carryer.ticksToLive])
+        maxTicks = _.max([maxTicks,carryer.ticksToLive?carryer.ticksToLive:1500])
     })
     if(maxTicks <= 100){
         console.log("maxTicks <= 100",maxTicks)
