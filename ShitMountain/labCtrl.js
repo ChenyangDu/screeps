@@ -1,6 +1,6 @@
 /**********************************************
 author：ChenyangDu, Tracer
-version:1.6
+version:1.7
 lab半自动
 
 【更新说明】：
@@ -15,6 +15,7 @@ lab半自动
 8、修复了有operate_lab的情况下错误进入RECOVERY的bug
 9、修复了1.5版本修复导致的willEnd()计算错误
 10、修复了在REACTION状态下仍因资源不足开摆的bug
+11、修复了因为operate_lab导致数量不能整除5时不能正常生成任务的问题
 
 【使用方法】：
 1、需要占用Memory.lab，不要和其他代码冲突
@@ -26,6 +27,7 @@ lab半自动
 4、如果你的房间物流能够保证原矿不断，那么可以使用下面的UNLIMITED_RESOURCES来避开检测某些矿物数量不足。
 5、storage不要满，要不没地方放产物
 6、尽量科学摆放LAB（有两个lab离其他lab的距离<=2），代码会自动寻找生产效率最大的方式
+7、请保证pc仅在lab有cd的时候再进行强化（因为底料lab中只会保证最少有5个底物） <- 重要，可能导致死锁
 
 【代码部分】：
 var labCtrl = require('labCtrl')
@@ -34,6 +36,10 @@ module.exports.loop = function () {
     labCtrl.run('W47N21','XGH2O',200000)
     //your code
 }
+
+【TODO】
+1、REACTION状态下不需要再计算配方，节省CPU
+2、如果lab位置摆放不合理，并且该lab在labs数组中，会因为反应时无法获取底物而切换状态
 ***************************************************/
 
 const STATE_FILL = 0
@@ -43,6 +49,8 @@ const STATE_RECOVERY = 2
 const body = [CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOVE,CARRY,CARRY,MOVE]
 //lab专用creep的身体部件，如果嫌多，或者嫌少，自行调整
 const UNLIMITED_RESOURCES = ['Z','K','U','L','H','O','X'];//如果你的房间物流能够保证提供这些基础矿物，那么程序会默认这些矿物数量为无穷大
+
+var queen_name="SUP_${room.name}"; // 中心搬运工名字，用于包含在化合物数量统计中
 
 var room,needs,labs,creep
 
@@ -68,10 +76,12 @@ module.exports = {
         });
         
         needs = new Array();
+
+        let cache_amount=getAllType(need_type); // 省一点cpu
         
-        need_amount = need_amount - getAllType(need_type)
+        need_amount = need_amount - cache_amount
         if(need_amount > 3000) need_amount = 3000;
-        need_amount += getAllType(need_type)
+        need_amount += cache_amount
         
         pushMission([need_type,need_amount],roomName)
         // console.log(roomName,needs) 
@@ -81,7 +91,7 @@ module.exports = {
         }else{
             console.log(roomName,'already has',need_amount,need_type)
         }
-        if(amount % 5)amount += 5-amount%5;
+        // if(amount % 5) amount += 5-amount%5; // 应在每次递归时保证
         // console.log(materials);
         if(materials == null && needs.length >= 1){
             console.log('Room '+roomName+' need '+ amount + product)
@@ -328,16 +338,16 @@ function autoSpawnCreep(creepName){
 function getAllType(type){
     if(UNLIMITED_RESOURCES.indexOf(type) != -1) return 1000000;
     var amount = 0;
-    amount += room.storage.store[type]
-    amount += room.terminal.store[type]
+    amount += room.storage.store[type];
+    amount += room.terminal.store[type];
     labs.forEach(lab => {
         amount += lab.store[type];
     });
     if(creep)
-        amount += creep.store[type]
-    let sup = Game.creeps['Laber_'+room.name]
+        amount += creep.store[type];
+    let sup = Game.creeps[queen_name.replace('${room.name}',room.name)];
     if(sup){
-        amount += sup.store[type]
+        amount += sup.store[type];
     }
     return amount;
 }
@@ -345,6 +355,7 @@ function pushMission(mission,roomName){
     mission[1] -= getAllType(mission[0])
     if(mission[1] <= 0)return;
     else {
+        if(mission[1] % 5) mission[1] += 5-mission[1]%5;
         needs.push(mission)
         var materials = findMaterial(mission[0])
         if(materials){
