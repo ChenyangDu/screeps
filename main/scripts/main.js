@@ -52,7 +52,8 @@ module.exports.loop = function () {
     //     Game.getObjectById("3dde603ca959353"),
     //     Game.rooms['W3N8'].storage,"energy","link");
 
-
+    carryCtrl.end();
+    
     let creep = Game.creeps["harvester225"]
     if(creep){
         // creep.moveTo(28,14)

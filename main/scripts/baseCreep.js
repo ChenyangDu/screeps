@@ -129,6 +129,7 @@ function spawnHarvester(room){
 }
 
 function needHarvester(room){
+    return !haveEnergyIncome(room)
     // 如果没有搬运工且harvester快挂了
     if (allCreeps[room.name] && !allCreeps[room.name]["carryer"]){
         let maxlife = 0;// 最长的harvester寿命
@@ -143,7 +144,7 @@ function needHarvester(room){
     }
     // todo 如果upgrader/builder较多
     
-    // return !haveEnergyIncome(room)
+    
     
     let max_sum_harvesters
     if(!allCreeps[room.name])allCreeps[room.name] = {}

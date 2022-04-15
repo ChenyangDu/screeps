@@ -2,6 +2,10 @@
  * 【功能】本模块主要提供房间内搬运工服务，提供含有move/carry的creep
  * 
  * 【结构】
+ * {
+ *  carryers:[],
+ *  busyTicks:0,
+ * }
  * 在Memory.rooms.xxxx.carryctrl中维护一个carryers的队列
  * 其中used属性记录他们是否被其他模块借用
  * 
@@ -24,6 +28,7 @@ module.exports = {
     getAvgCapacity,
     borrowCreep,
     returnCreep,
+    end,
 }
 
 function init(){
@@ -48,8 +53,13 @@ function init(){
                 carryers.push(carry)
             }
         }
-        for(let carry of carryers){
+        for(let i=0;i<carryers.length;i++){
+            carry = carryers[i]
             carry.registed = false
+            if(!Game.creeps[carry.name]){
+                carryers.splice(i,1)
+                i--;
+            }
         }
     }
 }
@@ -66,12 +76,13 @@ function getAvgCapacity(roomName){
  * 
  * @param {Room} room 
  */
-function borrowCreep(room){
+function borrowCreep(room,ticks = 50){
     let creeps = room.memory.carryctrl.carryers
     for(let creep of creeps){
-        if(!creep.used){
+        if(!creep.used && Game.creeps[creep.name] 
+            && Game.creeps[creep.name].ticksToLive >= ticks){
+
             creep.used = true
-            console.log(creep.name)
             return creep.name
         }
     }
@@ -87,6 +98,54 @@ function returnCreep(room,creepName){
         }
     });
     return;
+}
+
+// 结束统计
+function end(){
+    Game.myrooms.forEach(room=>{
+        if(needCarryer(room)){
+            spawn(room)
+        }
+    })
+}
+
+function needCarryer(room){
+    let isfree = false
+    let creeps = room.memory.carryctrl.carryers
+    creeps.forEach(creep => {
+        if(creep.used == false){
+            isfree = true;
+        }
+    })
+    if(!isfree){
+        room.memory.carryctrl.busyTicks ++;
+    }else{
+        room.memory.carryctrl.busyTicks = 0;
+    }
+    if(room.memory.carryctrl.busyTicks >= 100){
+        console.log("busyTicks >= 100",busyTicks)
+        busyTicks = -50
+        return true
+    }
+
+    let allCreeps = baseCreep.getAllCreeps()
+    if(!allCreeps || !allCreeps[room.name] || !allCreeps[room.name]["carryer"] ||
+        allCreeps[room.name]["carryer"].length == 0){
+            console.log("no carryer",allCreeps[room.name]["carryer"].length)
+            return true;// 如果没有carryer
+        }
+    // 最长寿命的creep不足100ticks
+    let carryers = allCreeps[room.name]["carryer"]
+    let maxTicks = 0;
+    carryers.forEach(carryer=>{
+        maxTicks = _.max([maxTicks,carryer.ticksToLive])
+    })
+    if(maxTicks <= 100){
+        console.log("maxTicks <= 100",maxTicks)
+        return true
+    }
+    return false
+    // if(maxTicks < )
 }
 
 function spawn(room){

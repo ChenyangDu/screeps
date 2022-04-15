@@ -28,8 +28,16 @@ var roleUpgrader = {
 
             let tStorage = creep.room.tStorage();
             if(tStorage){
-                if(creep.pos.isNearTo(tStorage))
-                    creep.withdraw(tStorage,'energy')
+                
+                if(creep.pos.isNearTo(tStorage)){
+                    
+                    const target = creep.pos.lookFor(LOOK_RESOURCES);
+                    if(target[0]) {
+                        creep.pickup(target[0]) 
+                    }else{
+                        creep.withdraw(tStorage,'energy')
+                    }
+                }
                 if(creep.ticksToLive % 17 == 0){
                     let poslists = [];
                     for(let x = -1;x <= 1;x++)
