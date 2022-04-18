@@ -238,6 +238,9 @@ function creepWithdraw(creep,target){
 function findWithdrawTarget(creep,withdrawTargets){
     let target = creep.pos.findClosestByPath(withdrawTargets,{
         filter:struct =>{
+            if(struct instanceof Tombstone && struct.est_energy >= 0){
+                return true
+            }
             switch(struct.structureType){
                 case STRUCTURE_CONTAINER:
                     if(struct.est_energy >= Math.min(400, creep.store.getFreeCapacity('energy')))
@@ -276,11 +279,13 @@ function findWithdrawTargets(room,capacity){
     if(centerLink && centerLink.store.getUsedCapacity("energy") > 0){
         withdrawTargets.push(centerLink)
     }
-    withdrawTargets.concat(room.find(FIND_TOMBSTONES,{
+    let tombs = room.find(FIND_TOMBSTONES,{
         filter:o=>{
             return o.store[RESOURCE_ENERGY] > 0
         }
-    }))
+    })
+    withdrawTargets = withdrawTargets.concat(tombs)
+    
     return withdrawTargets
 }
 

@@ -87,6 +87,8 @@ function borrowCreep(room,ticks = 50){
             return creep.name
         }
     }
+    // 借不到
+    room.memory.carryctrl.busyTicks ++;
     return null
 }
 
@@ -118,14 +120,13 @@ function needCarryer(room){
             isfree = true;
         }
     })
-    if(!isfree){
-        room.memory.carryctrl.busyTicks ++;
-    }else{
+    if(isfree){
         room.memory.carryctrl.busyTicks = 0;
     }
+    
     if(room.memory.carryctrl.busyTicks >= 100){
-        console.log("busyTicks >= 100",busyTicks)
-        busyTicks = -50
+        console.log("busyTicks >= 100",room.memory.carryctrl.busyTicks)
+        room.memory.carryctrl.busyTicks = -100
         return true
     }
 
@@ -138,11 +139,17 @@ function needCarryer(room){
     // 最长寿命的creep不足100ticks
     let carryers = allCreeps[room.name]["carryer"]
     let maxTicks = 0;
+    // console.log(carryers.length,Game.time)
     carryers.forEach(carryer=>{
-        maxTicks = _.max([maxTicks,carryer.ticksToLive?carryer.ticksToLive:1500])
+        let ticks = carryer.ticksToLive
+        if(ticks === undefined || carryer.spawning == true){
+            ticks = 1500;
+        }
+        // console.log(carryer,ticks)
+        maxTicks = _.max([maxTicks,ticks])
     })
-    if(maxTicks <= 100){
-        console.log("maxTicks <= 100",maxTicks)
+    if(maxTicks <= 150){
+        console.log("maxTicks <= 150",maxTicks)
         return true
     }
     return false

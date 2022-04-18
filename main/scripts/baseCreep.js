@@ -2,11 +2,11 @@
  * 负责harvester upgrader builder
  * 以及统计所有的carryers
  */
-var roleHarvester = require('role.harvester');
 var roleUpgrader = require('role.upgrader');
 var roleBuilder = require('role.builder');
 var carryTaskCtrl = require('carryTaskCtrl')
 var spawnCtrl = require('spawnCtrl');
+var eye = require('eye')
 
 const myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my)
 
@@ -41,6 +41,11 @@ function init(){
             case 'carryer':
                 addCnt(roomName,creep);break;
         }
+        try{
+            if(creep.name.substring(0,2) == "斥候"){
+                eye.runCreep(creep)
+            }
+        }catch(err){console.log(err.stack)}
         
     }
 }

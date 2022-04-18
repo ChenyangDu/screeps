@@ -7,6 +7,7 @@ let tower = require("tower")
 let carryTaskCtrl = require("carryTaskCtrl")
 let carryCtrl = require("carryCtrl")
 let carryEnergy = require("carryEnergy")
+let eye = require("eye")
 
 require('prototype.Creep.move')
 require('prototype.Room')
@@ -20,8 +21,10 @@ module.exports.loop = function () {
     SourceKeeperCtrl.run();
 
     //初始化
+    eye.init();
     baseCreep.init();
     carryCtrl.init();
+
 
     // 生产并运行harvetser builder upgrader
     baseCreep.run();
@@ -38,7 +41,10 @@ module.exports.loop = function () {
 
     //tower
     tower.run()
-
+    // let creep = Game.creeps["upgrader_W8N3_35082"]
+    // console.log(creep)
+    // if(creep)
+    //     console.log(creep,creep.spawning,creep.ticksToLive,creep.memory.role)
     try{
         carryEnergy.run()
     }catch(err){console.log(err.stack)}
@@ -47,18 +53,10 @@ module.exports.loop = function () {
     // try{
         carryTaskCtrl.run();
     // }catch(err){}
-    // carryTaskCtrl.addTask(
-    //     Game.rooms['W3N8'],
-    //     Game.getObjectById("3dde603ca959353"),
-    //     Game.rooms['W3N8'].storage,"energy","link");
+    
 
     carryCtrl.end();
     
-    let creep = Game.creeps["harvester225"]
-    if(creep){
-        // creep.moveTo(28,14)
-        // creep.transfer(creep.room.storage,"energy")
-    }
 
     autoConSite.test();
 
