@@ -38,7 +38,7 @@ function init(){
         let creeps = allCreeps[roomName]["carryer"]
         
         if(!creeps || creeps.length == 0){
-            spawn(room)
+            spawn(room,true)
             continue;
         }
         let carryctrl = Game.rooms[roomName].memory.carryctrl
@@ -68,6 +68,7 @@ function getAvgCapacity(roomName){
     let allCreeps = baseCreep.getAllCreeps()
     let cap = 0;
     let creeps = allCreeps[roomName]["carryer"]
+    if(!creeps)return 0;
     cap = _.sum(creeps,'carryCapacity')
     
     return cap/creeps.length
@@ -133,7 +134,7 @@ function needCarryer(room){
     let allCreeps = baseCreep.getAllCreeps()
     if(!allCreeps || !allCreeps[room.name] || !allCreeps[room.name]["carryer"] ||
         allCreeps[room.name]["carryer"].length == 0){
-            console.log("no carryer",allCreeps[room.name]["carryer"].length)
+            console.log("no carryer")
             return true;// 如果没有carryer
         }
     // 最长寿命的creep不足100ticks
@@ -156,8 +157,7 @@ function needCarryer(room){
     // if(maxTicks < )
 }
 
-function spawn(room){
-    
+function spawn(room,isEmergency=false){
     // 如果spawn列表中存在carryer
     if(spawnCtrl.getList(room,
         o=>o.opt && o.opt.memory && o.opt.memory.role == 'carryer').length > 0){
@@ -166,7 +166,17 @@ function spawn(room){
 
     let body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
         room.energyCapacityAvailable,24)
+
+    let allCreeps = baseCreep.getAllCreeps()
+    if(!allCreeps || !allCreeps[room.name] || !allCreeps[room.name]["carryer"] ||
+        allCreeps[room.name]["carryer"].length == 0){
+            console.log("emergency")
+        body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
+            room.energyAvailable,24)
+        }else{
+            console.log("free");
+        }
         
     spawnCtrl.addSpawnList(room.name,body,'carryer'+Game.time%1000,
-        {memory:{role:'carryer'}})
+        {memory:{role:'carryer'}},3)
 }

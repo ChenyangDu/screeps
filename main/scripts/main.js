@@ -13,7 +13,8 @@ require('prototype.Creep.move')
 require('prototype.Room')
 
 module.exports.loop = function () {
-    Game.myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my);
+    Game.myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my
+    && x.controller.level > 0);
     // 对穿
     require('prototype.Creep.move').moveCache.clear()
 
@@ -34,6 +35,9 @@ module.exports.loop = function () {
 
     // 自动建造
     autoConSite.run();
+
+    // 生产间谍
+    eye.spawnSpy();
 
 
     //生产

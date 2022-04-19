@@ -6,9 +6,11 @@
  * 键值为房间名称，spytick,obtick表示上次观察该房间的tick
  * eyetick为二者的最小值
  */
-
+var spawnCtrl = require("spawnCtrl")
+var autoOutMiner = require("autoOutMiner")
 module.exports = {
     init,
+    spawnSpy,
     runCreep,
 }
 
@@ -17,9 +19,20 @@ function init(){
     if(!Memory.eye.rooms)Memory.eye.rooms = {}
 }
 
+function spawnSpy(){
+    Game.myrooms.forEach(room => {
+        if(Game.time % 1501 == 90){
+            spawnCtrl.addSpawnList(room.name,[MOVE],"斥候_"+room.name)
+        }
+    });
+}
+
 /** @param {Creep} creep */
 function runCreep(creep){
     creep.say("spy")
+    // watchRoom(creep.room)
+    // return;
+
     let targetRoom = creep.memory.targetRoom
     if(creep.room.name == targetRoom){
         targetRoom = null
@@ -54,8 +67,11 @@ function runCreep(creep){
     creep.memory.targetRoom = targetRoom
 }
 
+
+
 function watchRoom(room){
     console.log('watch',room)
+    autoOutMiner.watchReverse(room)
 }
 
 function isborder(pos){

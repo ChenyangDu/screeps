@@ -2,6 +2,11 @@ var autoConSite = require('autoConSite')
 var spawnCtrl = require('spawnCtrl')
 var harvester_old = require('role.harvester_old')
 var badPerson;
+/**
+ * 【功能】全自动外矿
+ * 【结构】占用黄棕色、黄橙色旗子、Memory.rooms.xxx.outminer
+ *  todo 修路的时候别造carryer
+ */
 module.exports = {
     run:function(){
         badPerson = false;
@@ -13,6 +18,13 @@ module.exports = {
                 let reserveRoom = {};
                 reserveRoom.spawn = flag.name.split('_')[0]
                 reserveRoom.name = flag.pos.roomName
+
+                // 出生房间不存在就拔旗
+                if(!Game.rooms[reserveRoom.spawn]){
+                    removeFlag(Game.rooms[reserveRoom.spawn])
+                    // todo 把source上面的旗也拔了
+                    continue
+                }
                 // 能量不足产生reserve
                 let energyCap = Game.rooms[reserveRoom.spawn].energyCapacityAvailable;
                 if(energyCap < 650)continue;
@@ -31,6 +43,67 @@ module.exports = {
                 let room = Game.rooms[flag.name.split('_')[0]];
                 //if(!room || room.controller.level)
                 runFlag(flag)
+            }
+        }
+    },
+    // 判断房间是否适合作为外矿
+    /**
+     * 
+     * @param {Room} outroom 
+     * @returns 
+     */
+    watchReverse(outroom){
+        
+        // 没控制器不行
+        if(!outroom.controller)return
+        // 有主的就算了
+        if(outroom.controller.level > 0)return;
+        let res = findSpawnRoom(outroom)
+        if(res == null)return
+        let spawnroom = res.room
+        let dis = res.dis
+
+        // Memory初始化
+        let memory = spawnroom.memory.outminer
+        if(!memory){
+            memory = spawnroom.memory.outminer = {}
+        }
+        let outrooms = memory.outrooms
+        if(!outrooms){
+            outrooms = memory.outrooms = []
+        }
+
+        // 加入到spawnroom的外矿备选房间当中
+        let isIn = false;
+        for(let o of outrooms){
+            if(o.roomName == outroom.name){
+                o.dis = dis
+                isIn = true;
+                break;
+            }
+        }
+        if(!isIn){
+            outrooms.push({
+                roomName:outroom.name,
+                dis,
+            })
+        }
+        // 距离最短的4个房间作为外矿
+        outrooms.sort((a,b)=>(a.dis - b.dis))
+        let len = Math.min(outrooms.length,4)
+        for(let i=0;i<len;i++){
+            let pos = new RoomPosition(25,25,outrooms[i].roomName)
+            let flag = Game.flags[spawnroom.name+"_"+outrooms[i].roomName]
+            if(!flag){
+                if(Game.rooms[outrooms[i].roomName])
+                pos.createFlag(spawnroom.name+"_"+outrooms[i].roomName,COLOR_YELLOW,COLOR_BROWN)
+            }
+        }
+        //其他的旗子拔了
+        for(let i=len;i<outrooms.length;i++){
+            let flag = Game.flags[spawnroom.name+"_"+outrooms[i].roomName]
+            if(flag){
+                removeFlag(flag.pos.roomName)
             }
         }
     }
@@ -85,18 +158,27 @@ function autoSpawn(creepName,body,dyingTick,spawnRoomName,work,flag){
     }
 }
 
+function removeFlag(room){
+    for(let flagName in Game.flags){
+        const flag = Game.flags[flagName]
+        if(flag.pos.roomName == room.name && flag.color == COLOR_YELLOW && 
+            (flag.secondaryColor == COLOR_BROWN || flag.secondaryColor == COLOR_ORANGE)){
+                flag.remove();
+            }
+    }
+}
+
 function runFlag(flag){
     const roomName = flag.name.split('_')[0]
     const room = Game.rooms[roomName]
     if(!room)return;
-    const creepName = flag.name;
 
     
-    autoSpawn('J_20_'+flag.name,
+    autoSpawn('歼20_'+flag.name,
         spawnCtrl.getbody([],[MOVE,MOVE,MOVE,CARRY,CARRY,WORK,WORK,WORK,WORK,],room.energyCapacityAvailable)
         ,100,roomName,harvester,flag)
 
-    autoSpawn('Y_20_'+flag.name,
+    autoSpawn('运20_'+flag.name,
         spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],room.energyCapacityAvailable)
         ,100,roomName,carryer,flag)
 
@@ -429,4 +511,101 @@ function defendCreepRoom(defendRoom){
                 ,creepName)
         }
     }
+}
+/**
+ * 找到适合这个外矿的出生房间
+ * @param {Room} outroom 
+ * @returns {Obejct} {room,dis}
+ */
+function findSpawnRoom(outroom){
+    let sources = outroom.find(FIND_SOURCES)
+    if(!sources || sources.length == 0)return null;
+
+    let spawnrooms = [];
+    for(let room of Game.myrooms){
+        
+        if(disRoom(room.name,outroom.name) <= 2){
+            
+            // 计算两个矿点到达出生房间内的距离
+            let target = getTransferTarget(room)
+            if(!target)continue
+            let dis = 0;
+            sources.forEach(source=>{
+                let res = myPathFinder(source.pos,{pos:target.pos,range:1})
+                dis += res.path.length
+            })
+            dis /= sources.length
+            
+            spawnrooms.push({
+                room,dis,
+            })
+        }
+    }
+    if(spawnrooms.length == 0)return null;
+    spawnrooms.sort((a,b) => a.dis - b.dis);
+    return spawnrooms[0];
+}
+
+function myPathFinder(startPos, target){
+    let ret = PathFinder.search(
+        startPos, target,
+        {
+          // 我们需要把默认的移动成本设置的更高一点
+          // 这样我们就可以在 roomCallback 里把道路移动成本设置的更低
+          plainCost: 2,
+          swampCost: 10,
+    
+          roomCallback: function(roomName) {
+    
+            let room = Game.rooms[roomName];
+            // 在这个示例中，`room` 始终存在
+            // 但是由于 PathFinder 支持跨多房间检索
+            // 所以你要更加小心！
+            if (!room) return;
+            let costs = new PathFinder.CostMatrix;
+    
+            room.find(FIND_STRUCTURES).forEach(function(struct) {
+              if (struct.structureType === STRUCTURE_ROAD) {
+                // 相对于平原，寻路时将更倾向于道路
+                costs.set(struct.pos.x, struct.pos.y, 1);
+              } else if (struct.structureType !== STRUCTURE_CONTAINER &&
+                         (struct.structureType !== STRUCTURE_RAMPART ||
+                          !struct.my)) {
+                // 不能穿过无法行走的建筑
+                costs.set(struct.pos.x, struct.pos.y, 0xff);
+              }
+            });
+    
+            // 躲避房间中的 creep
+            room.find(FIND_CREEPS).forEach(function(creep) {
+              costs.set(creep.pos.x, creep.pos.y, 0xff);
+            });
+    
+            return costs;
+          },
+        }
+    );
+    return ret;
+}
+
+// 返回a/b房间之间的曼哈顿距离
+function disRoom(a,b){
+    let pa = roomNameToNum(a)
+    let pb = roomNameToNum(b)
+    
+    return Math.abs(pa.x-pb.x)+Math.abs(pa.y-pb.y);
+}
+
+//房间名称和坐标互相转化，其中设E0S0为(0,0),ES区域的坐标为正
+function roomNameToNum(roomName){
+    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+    let x,y;
+    x = parseInt(parsed[1]),y = parseInt(parsed[2]);
+    if(roomName.indexOf('W') != -1){
+        x = -x-1;
+    }
+    if(roomName.indexOf('N') != -1){
+        y = -y-1;
+    }
+    return {x,y};
 }
