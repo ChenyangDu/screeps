@@ -30,7 +30,7 @@ module.exports = {
                 if(energyCap < 650)continue;
 
                 //给每个source上面插旗
-                solve(flag);
+                // solve(flag);
                 
                 runReserve(reserveRoom)
                 defendCoreRoom(reserveRoom)
@@ -90,7 +90,7 @@ module.exports = {
         }
         // 距离最短的4个房间作为外矿
         outrooms.sort((a,b)=>(a.dis - b.dis))
-        let len = Math.min(outrooms.length,4)
+        let len = Math.min(outrooms.length,2)
         for(let i=0;i<len;i++){
             let pos = new RoomPosition(25,25,outrooms[i].roomName)
             let flag = Game.flags[spawnroom.name+"_"+outrooms[i].roomName]
@@ -158,10 +158,10 @@ function autoSpawn(creepName,body,dyingTick,spawnRoomName,work,flag){
     }
 }
 
-function removeFlag(room){
+function removeFlag(roomName){
     for(let flagName in Game.flags){
         const flag = Game.flags[flagName]
-        if(flag.pos.roomName == room.name && flag.color == COLOR_YELLOW && 
+        if(flag.pos.roomName == roomName && flag.color == COLOR_YELLOW && 
             (flag.secondaryColor == COLOR_BROWN || flag.secondaryColor == COLOR_ORANGE)){
                 flag.remove();
             }
@@ -450,7 +450,7 @@ function defendCoreRoom(defendRoom){
         })
         if(targets.length){
             spawnCtrl.addSpawnList(defendRoom.spawn,
-                spawnCtrl.getbody([],[ATTACK,ATTACK,MOVE,],room.energyCapacityAvailable,6),
+                spawnCtrl.getbody([],[ATTACK,ATTACK,MOVE,],Game.rooms[defendRoom.spawn].energyCapacityAvailable,6),
                 creepName);
             
         }
@@ -507,7 +507,7 @@ function defendCreepRoom(defendRoom){
         if(targets.length){
             badPerson = true;
             spawnCtrl.addSpawnList(defendRoom.spawn,
-                spawnCtrl.getbody([],[RANGED_ATTACK,HEAL,MOVE,],room.energyCapacityAvailable,12)
+                spawnCtrl.getbody([],[RANGED_ATTACK,HEAL,MOVE,],Game.rooms[defendRoom.spawn].energyCapacityAvailable,12)
                 ,creepName)
         }
     }
@@ -532,13 +532,15 @@ function findSpawnRoom(outroom){
             let dis = 0;
             sources.forEach(source=>{
                 let res = myPathFinder(source.pos,{pos:target.pos,range:1})
-                dis += res.path.length
+                if(!res.incomplete) dis += res.path.length
             })
             dis /= sources.length
+            if(dis > 0){
+                spawnrooms.push({
+                    room,dis,
+                })
+            }
             
-            spawnrooms.push({
-                room,dis,
-            })
         }
     }
     if(spawnrooms.length == 0)return null;
@@ -576,10 +578,10 @@ function myPathFinder(startPos, target){
               }
             });
     
-            // 躲避房间中的 creep
-            room.find(FIND_CREEPS).forEach(function(creep) {
-              costs.set(creep.pos.x, creep.pos.y, 0xff);
-            });
+            // // 躲避房间中的 creep
+            // room.find(FIND_CREEPS).forEach(function(creep) {
+            //   costs.set(creep.pos.x, creep.pos.y, 0xff);
+            // });
     
             return costs;
           },

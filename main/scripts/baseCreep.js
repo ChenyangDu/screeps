@@ -8,7 +8,7 @@ var carryTaskCtrl = require('carryTaskCtrl')
 var spawnCtrl = require('spawnCtrl');
 var eye = require('eye')
 
-const myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my)
+// const myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my)
 
 let allCreeps = {}
 
@@ -103,7 +103,7 @@ function getCnt(roomName,role){
 }
 
 function spawnCreep(){
-    for(let room of myrooms){
+    for(let room of Game.myrooms){
         room = Game.rooms[room.name];
         spawnHarvester(room);
         spawnUpgrader(room);

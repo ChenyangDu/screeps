@@ -45,7 +45,7 @@ function init(){
         if(!carryctrl)carryctrl = room.memory.carryctrl = {}
         if(!carryctrl.carryers)carryctrl.carryers = []
         let carryers = carryctrl.carryers
-
+        carryctrl.busyTicks_old = carryctrl.busyTicks
         for(let creep of creeps){
             let carry = carryers.filter(c=>c.name == creep.name)
             if(!carry || carry.length == 0){
@@ -62,6 +62,7 @@ function init(){
             }
         }
     }
+
 }
 
 function getAvgCapacity(roomName){
@@ -89,6 +90,7 @@ function borrowCreep(room,ticks = 50){
         }
     }
     // 借不到
+    
     room.memory.carryctrl.busyTicks ++;
     return null
 }
@@ -114,19 +116,24 @@ function end(){
 }
 
 function needCarryer(room){
-    let isfree = false
-    let creeps = room.memory.carryctrl.carryers
-    creeps.forEach(creep => {
-        if(creep.used == false){
-            isfree = true;
-        }
-    })
-    if(isfree){
-        room.memory.carryctrl.busyTicks = 0;
+    // let isfree = false
+    // let creeps = room.memory.carryctrl.carryers
+    // creeps.forEach(creep => {
+    //     if(creep.used == false){
+    //         isfree = true;
+    //     }
+    // })
+    // if(isfree){
+    //     // room.memory.carryctrl.busyTicks = 0;
+    // }
+
+    // 没有失败的借creep请求
+    if(room.memory.carryctrl.busyTicks == room.memory.carryctrl.busyTicks_old){
+        room.memory.carryctrl.busyTicks >>= 1;
     }
     
-    if(room.memory.carryctrl.busyTicks >= 100){
-        console.log("busyTicks >= 100",room.memory.carryctrl.busyTicks)
+    if(room.memory.carryctrl.busyTicks >= 50){
+        console.log("busyTicks >= 50",room.memory.carryctrl.busyTicks)
         room.memory.carryctrl.busyTicks = -100
         return true
     }
