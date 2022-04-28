@@ -303,6 +303,7 @@ function findTransferTargets(room){
         filter: (struct) => {
             return (struct.structureType == STRUCTURE_EXTENSION ||
             struct.structureType == STRUCTURE_SPAWN ||
+            struct.structureType == STRUCTURE_LAB ||
             (struct.structureType == STRUCTURE_TOWER && 
                 (struct.energy < 700 || (struct.energy<=900 && room.energyAvailable >= 0.9*room.energyCapacityAvailable)
             ))) &&

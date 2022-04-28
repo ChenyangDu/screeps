@@ -8,6 +8,7 @@ let carryTaskCtrl = require("carryTaskCtrl")
 let carryCtrl = require("carryCtrl")
 let carryEnergy = require("carryEnergy")
 let eye = require("eye")
+var labCtrl = require('labCtrl')
 
 require('prototype.Creep.move')
 require('prototype.Room')
@@ -39,12 +40,14 @@ module.exports.loop = function () {
     // 生产间谍
     eye.spawnSpy();
 
-
     //生产
     spawnCtrl.spawn();
 
     //tower
     tower.run()
+
+    
+
     // let creep = Game.creeps["upgrader_W8N3_35082"]
     // console.log(creep)
     // if(creep)
@@ -58,6 +61,10 @@ module.exports.loop = function () {
         carryTaskCtrl.run();
     // }catch(err){}
     
+    // lab
+    labCtrl.init(Game.rooms['W8N3'])
+    labCtrl.reaction(Game.rooms['W8N3'])
+    labCtrl.end(Game.rooms['W8N3'])
 
     carryCtrl.end();
     

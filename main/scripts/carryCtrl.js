@@ -116,21 +116,25 @@ function end(){
 }
 
 function needCarryer(room){
-    // let isfree = false
-    // let creeps = room.memory.carryctrl.carryers
-    // creeps.forEach(creep => {
-    //     if(creep.used == false){
-    //         isfree = true;
-    //     }
-    // })
-    // if(isfree){
-    //     // room.memory.carryctrl.busyTicks = 0;
-    // }
+    
+    let creeps = room.memory.carryctrl.carryers
+    creeps.forEach(creep => {
+        if(creep.used == false){
+            if(room.storage){
+                let c = Game.creeps[creep.name]
+                if(c.pos.getRangeTo(room.storage) > 5){
+                    c.moveTo(room.storage,{range:5})
+                }
+            }
+        }
+    })
+    
 
     // 没有失败的借creep请求
-    if(room.memory.carryctrl.busyTicks == room.memory.carryctrl.busyTicks_old){
+    if(room.memory.carryctrl.busyTicks >0 && room.memory.carryctrl.busyTicks == room.memory.carryctrl.busyTicks_old){
         room.memory.carryctrl.busyTicks >>= 1;
     }
+    // console.log(room.memory.carryctrl.busyTicks)
     
     if(room.memory.carryctrl.busyTicks >= 50){
         console.log("busyTicks >= 50",room.memory.carryctrl.busyTicks)

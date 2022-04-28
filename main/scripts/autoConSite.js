@@ -132,7 +132,12 @@ function controlKeep(flag){
     if(path.length){
         // 靠近controller的container
         let containerPos = path[path.length-1]
-        containerPos.createConstructionSite(STRUCTURE_CONTAINER)
+        if(room.tStorage()){
+            containerPos = room.tStorage().pos
+        }else{
+            containerPos.createConstructionSite(STRUCTURE_CONTAINER)
+        }
+        
         if(controller.level >= 6){
             for(let x = -1;x<=1;x++){
                 for(let y = -1;y<=1;y++){

@@ -157,7 +157,7 @@ function SourceKeeper (creep,flag){
             else{
                 // 传输能量
                 let centerLink = creep.room.centerLink()
-                if(centerLink){
+                if(centerLink && centerLink.store.getFreeCapacity(RESOURCE_ENERGY)>100){
                     link.transferEnergy(centerLink)
                 }
             } 
