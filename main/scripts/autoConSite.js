@@ -3,7 +3,7 @@ module.exports = {
         for(let room of Game.myrooms){
             let roomName = room.name;
             var flag = Game.flags["Main_" + roomName]
-            if(flag && Game.time % 13 == 0){
+            if(flag && Game.time % 113 == 0){
                 runFlag(flag)
             }
         }
@@ -70,8 +70,7 @@ function runFlag(flag){
         controlKeep(flag)
     }
     if(level >= 6){
-        let miner = room.find(FIND_MINERALS)[0]
-        miner.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
+        extractor(flag)
     }
 }
 function sourceKeep(flag){
@@ -154,6 +153,31 @@ function controlKeep(flag){
     }
 }
 
+function extractor(flag){
+    let miner = room.find(FIND_MINERALS)[0]
+    miner.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
+    let startPos = new RoomPosition(center.x + flag.pos.x,center.y + flag.pos.y,flag.pos.roomName)
+    miner.range = 1;
+    let path = myPathFinder(startPos,miner).path
+    for(var i=1;i<path.length-1;i++){
+        path[i].createConstructionSite(STRUCTURE_ROAD)
+    }
+    if(path.length){
+        // 靠近controller的container
+        let minerPos = path[path.length-1]
+        if(room.memory.miner){
+            minerPos = new RoomPosition(room.memory.miner.pos.x,room.memory.miner.pos.y,room.name)
+        }else{
+            room.memory.miner = {}
+            room.memory.miner.pos = {}
+            room.memory.miner.id = miner.id
+            room.memory.miner.pos.x = minerPos.x
+            room.memory.miner.pos.y = minerPos.y
+        }
+        minerPos.createConstructionSite(STRUCTURE_CONTAINER)
+    }
+}
+
 function roadBuild(flag,position){
     var exits = [
         {"x":1,"y":8},{"x":8,"y":1},{"x":5,"y":12},{"x":12,"y":5},
@@ -175,8 +199,8 @@ function myPathFinder(startPos,target){
         {
         // 我们需要把默认的移动成本设置的更高一点
         // 这样我们就可以在 roomCallback 里把道路移动成本设置的更低
-        plainCost: 3,
-        swampCost: 6,
+        plainCost: 2,
+        swampCost: 4,
 
         roomCallback: function(roomName) {
 

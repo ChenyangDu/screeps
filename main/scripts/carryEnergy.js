@@ -44,13 +44,19 @@ module.exports = {
 
             // 增加能量中转站，顺便统计各类能量
             let withdrawEnergy,transferEnergy,creepEnergy
-            [withdrawEnergy,transferEnergy,creepEnergy] = addMid(withdrawTargets,transferTargets,creeps)
+            [withdrawEnergy,transferEnergy,creepEnergy] = addMid(room,withdrawTargets,transferTargets,creeps)
 
             // 增加est_energy属性
             withdrawTargets.forEach(target =>{
-                if(!target.est_energy)
-                target.est_energy = target.store.getUsedCapacity("energy")
+                if(!target.est_energy){
+                    if(target instanceof Resource){
+                        target.est_energy = target.amount
+                    }else{
+                        target.est_energy = target.store.getUsedCapacity("energy")
+                    }
+                }
             })
+
             transferTargets.forEach(target =>{
                 if(!target.est_energy)
                 target.est_energy = target.store.getUsedCapacity("energy")
@@ -64,7 +70,7 @@ module.exports = {
             transferTargets.forEach(t => {
                 str += t.structureType + ' '
             });
-            // console.log(str)
+            // console.log(room,str)
 
             // 借用creep
             
@@ -81,27 +87,6 @@ module.exports = {
             creeps.forEach(creep=>{
                 creep.working = false
             })
-
-            // 处理满能量的
-            for(let i=0;i<creeps.length;i++){
-                let creep = creeps[i]
-                if(creep.store.getFreeCapacity("energy") == 0){
-                    creep.say('full')
-                    
-                    let target = findTransferTarget(creep,transferTargets)
-                    if(target){
-                        if(creepTransfer(creep,target)){
-                            carryCtrl.returnCreep(room,creep.name)
-                            creeps.splice(i,1)
-                            creepNames.splice(i,1)
-                            i--;
-                            continue
-                        }
-                        
-                    }
-                    creep.working = true
-                }
-            }
 
             // 处理半能量的
             for(let i=0;i<creeps.length;i++){
@@ -136,6 +121,28 @@ module.exports = {
                     creep.working = true
                 }
             }
+
+            // 处理满能量的
+            for(let i=0;i<creeps.length;i++){
+                let creep = creeps[i]
+                if(creep.store.getFreeCapacity("energy") == 0){
+                    creep.say('full')
+                    
+                    let target = findTransferTarget(creep,transferTargets)
+                    if(target){
+                        if(creepTransfer(creep,target)){
+                            carryCtrl.returnCreep(room,creep.name)
+                            creeps.splice(i,1)
+                            creepNames.splice(i,1)
+                            i--;
+                            continue
+                        }
+                        
+                    }
+                    creep.working = true
+                }
+            }
+            
             // 处理没能量的
             for(let i=0;i<creeps.length;i++){
                 let creep = creeps[i]
@@ -178,6 +185,9 @@ function needBorrow(creeps,withdrawTargets,transferTargets,capacity){
         if(_.sum(withdrawTargets,(o)=>{
             if(o.structureType == STRUCTURE_STORAGE || o.structureType == STRUCTURE_TERMINAL)
                 return Math.min(capacity,o.store.getUsedCapacity("energy"))
+            if(o instanceof Resource){
+                return o.amount
+            }
             return o.store.getUsedCapacity("energy")
         }) > capacity * creeps.length){
             return true
@@ -224,7 +234,9 @@ function creepWithdraw(creep,target){
         target.est_energy -= creep.store.getFreeCapacity("energy")
     }
     if (creep.pos.isNearTo(target)){
-        creep.withdraw(target,RESOURCE_ENERGY)
+        if(creep.withdraw(target,RESOURCE_ENERGY) != OK){
+            creep.pickup(target)
+        }
     }else{
         creep.moveTo(target,{range:1})
     }
@@ -239,7 +251,10 @@ function findWithdrawTarget(creep,withdrawTargets){
     let target = creep.pos.findClosestByPath(withdrawTargets,{
         filter:struct =>{
             if(struct instanceof Tombstone && struct.est_energy >= 0){
-                return true
+                return struct.est_energy > 0
+            }
+            if(struct instanceof Resource){
+                return struct.est_energy > 0
             }
             switch(struct.structureType){
                 case STRUCTURE_CONTAINER:
@@ -285,6 +300,13 @@ function findWithdrawTargets(room,capacity){
         }
     })
     withdrawTargets = withdrawTargets.concat(tombs)
+
+    let resources = room.find(FIND_DROPPED_RESOURCES,{
+        filter: o=>{
+            return o.resourceType == RESOURCE_ENERGY
+        }
+    })
+    withdrawTargets = withdrawTargets.concat(resources)
     
     return withdrawTargets
 }
@@ -310,20 +332,39 @@ function findTransferTargets(room){
             struct.store.getFreeCapacity("energy") > 0
         }
     })
-    
+    let creeps = room.find(FIND_MY_CREEPS,{
+        filter:(creep) =>{
+            // if(room.name == 'W3N1'){
+            //     console.log(creep.memory , creep.memory.role ,
+            //         (creep.memory.role == 'builder' || creep.memory.role == 'upgrader') ,
+            //         creep.store.getUsedCapacity() == 0)
+            // }
+            return creep.memory && creep.memory.role &&
+                (creep.memory.role == 'builder' || creep.memory.role == 'upgrader') &&
+                creep.store.getUsedCapacity() == 0
+        }
+    })
+    // console.log('transfer creeps',creeps)
+    transferTargets = transferTargets.concat(creeps)
+
     if(tStorage && tStorage.store.getFreeCapacity("energy") > 400){
         transferTargets.push(tStorage)
     }
     return transferTargets;
 }
 
-function addMid(withdrawTargets,transferTargets,creeps){
+function addMid(room,withdrawTargets,transferTargets,creeps){
     let midStruct = null
     if(room.storage)midStruct = room.storage
     
     // 分别计算可抽取能量、可存放能量、运输中的能量
     let withdrawEnergy = _.sum(withdrawTargets,
-        o=>{return o.store.getUsedCapacity("energy")})
+        o=>{
+            if(o instanceof Resource){
+                return o.amount
+            }
+            return o.store.getUsedCapacity("energy")
+        })
     let transferEnergy = _.sum(transferTargets,
         o=>{return o.store.getFreeCapacity("energy")})
     let creepEnergy = _.sum(creeps,

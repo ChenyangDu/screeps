@@ -21,7 +21,7 @@ function init(){
 
 function spawnSpy(){
     Game.myrooms.forEach(room => {
-        if(Game.time % 1019 == 0){
+        if(Game.time % 1019 == 0 && room.controller.level >= 3){
             spawnCtrl.addSpawnList(room.name,[MOVE],"斥候_"+room.name+Game.time%1511)
         }
     });

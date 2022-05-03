@@ -23,6 +23,7 @@
 let baseCreep = require("baseCreep")
 var spawnCtrl = require('spawnCtrl');
 
+
 module.exports = {
     init,
     getAvgCapacity,
@@ -33,16 +34,21 @@ module.exports = {
 
 function init(){
     let allCreeps = baseCreep.getAllCreeps()
+    let labCtrl = require('labCtrl')
     for(let roomName in allCreeps){
         let room = Game.rooms[roomName]
         let creeps = allCreeps[roomName]["carryer"]
         
         if(!creeps || creeps.length == 0){
-            spawn(room,true)
+            if(room.controller && room.controller.my)
+                spawn(room,true)
             continue;
         }
         let carryctrl = Game.rooms[roomName].memory.carryctrl
-        if(!carryctrl)carryctrl = room.memory.carryctrl = {}
+        if(!carryctrl){
+            room.memory.carryctrl = {}
+            carryctrl = room.memory.carryctrl
+        }
         if(!carryctrl.carryers)carryctrl.carryers = []
         let carryers = carryctrl.carryers
         carryctrl.busyTicks_old = carryctrl.busyTicks
@@ -59,7 +65,15 @@ function init(){
             if(!Game.creeps[carry.name]){
                 carryers.splice(i,1)
                 i--;
+            }else{
+                let creep = Game.creeps[carry.name]
+                if(creep.memory.boosted === false){
+                    labCtrl.boost(null,null,creep)
+                    // carryers.splice(i,1)
+                    // i--;
+                }
             }
+            
         }
     }
 
@@ -68,7 +82,10 @@ function init(){
 function getAvgCapacity(roomName){
     let allCreeps = baseCreep.getAllCreeps()
     let cap = 0;
-    let creeps = allCreeps[roomName]["carryer"]
+    let creeps = null
+    if(allCreeps[roomName] && allCreeps[roomName].carryer){
+        creeps = allCreeps[roomName].carryer
+    }
     if(!creeps)return 0;
     cap = _.sum(creeps,'carryCapacity')
     
@@ -79,11 +96,13 @@ function getAvgCapacity(roomName){
  * @param {Room} room 
  */
 function borrowCreep(room,ticks = 50){
+    if(!room.memory.carryctrl)return null;
     let creeps = room.memory.carryctrl.carryers
     for(let creep of creeps){
         if(!creep.used && Game.creeps[creep.name] &&
-            !Game.creeps[creep.name].spawning
-            && Game.creeps[creep.name].ticksToLive >= ticks){
+            !Game.creeps[creep.name].spawning &&
+            // Game.creeps[creep.name].memory.boosted !== false && 
+            Game.creeps[creep.name].ticksToLive >= ticks){
 
             creep.used = true
             return creep.name
@@ -96,6 +115,7 @@ function borrowCreep(room,ticks = 50){
 }
 
 function returnCreep(room,creepName){
+    if(!room.memory.carryctrl)return null;
     let creeps = room.memory.carryctrl.carryers
     creeps.forEach(creep => {
         if(creep.name == creepName){
@@ -116,14 +136,15 @@ function end(){
 }
 
 function needCarryer(room){
-    
+    if(!room.memory.carryctrl)return;
     let creeps = room.memory.carryctrl.carryers
     creeps.forEach(creep => {
         if(creep.used == false){
             if(room.storage){
                 let c = Game.creeps[creep.name]
-                if(c.pos.getRangeTo(room.storage) > 5){
-                    c.moveTo(room.storage,{range:5})
+                // 闲置的creep
+                if(c && c.pos.getRangeTo(room.storage) > 5){
+                    c.moveTo(room.storage,{range:5,ignoreCreeps:false})
                 }
             }
         }
@@ -167,7 +188,12 @@ function needCarryer(room){
     return false
     // if(maxTicks < )
 }
-
+/**
+ * 
+ * @param {Room} room 
+ * @param {*} isEmergency 
+ * @returns 
+ */
 function spawn(room,isEmergency=false){
     // 如果spawn列表中存在carryer
     if(spawnCtrl.getList(room,
@@ -177,17 +203,33 @@ function spawn(room,isEmergency=false){
 
     let body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
         room.energyCapacityAvailable,24)
-
+    let memory = {role:'carryer'}
     let allCreeps = baseCreep.getAllCreeps()
+    console.log(room.name,allCreeps[room.name],allCreeps[room.name]["carryer"] ,
+   )
     if(!allCreeps || !allCreeps[room.name] || !allCreeps[room.name]["carryer"] ||
         allCreeps[room.name]["carryer"].length == 0){
-            console.log("emergency")
+            // 紧急情况的carryer
+            console.log('emergency',room.energyAvailable)
         body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
             room.energyAvailable,24)
         }else{
-            console.log("free");
+            // 非紧急情况的carryer
+            
+            // todo 如果有boost条件, 对比市场价格，判断boost是否合适
+            let terminal = room.terminal
+            if(terminal && terminal.store.getUsedCapacity('KH') >= 16*30){
+                console.log('boost carry spawn');
+                body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
+                    room.energyCapacityAvailable,12)
+                let labCtrl = require('labCtrl')
+                memory.boost = labCtrl.boost_init_creep_memory({'KH':body.length/3*2})
+                memory.boosted = false
+            }
+
+
         }
-        
+    console.log('carry body :',body)
     spawnCtrl.addSpawnList(room.name,body,'carryer'+Game.time%1000,
-        {memory:{role:'carryer'}},3)
+        {memory},3)
 }

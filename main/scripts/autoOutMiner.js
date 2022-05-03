@@ -331,6 +331,7 @@ function carryer(creep,flag){
         if(!storage)return;
         if(creep.pos.isNearTo(storage)){
             creep.transfer(storage,'energy')
+            creep.moveTo(flag)
         }else{
             creep.moveTo(storage,{range:1})
         }
@@ -339,6 +340,11 @@ function carryer(creep,flag){
             if(container.store.energy >= creep.store.getFreeCapacity('energy')){
                 creep.withdraw(container,'energy')
             }
+            if(!flag.memory.path_length){
+                flag.memory.path_length = 1500;
+            }
+            
+            flag.memory.path_length = Math.min(flag.memory.path_length,1500,1500-creep.ticksToLive)
         }else{
             if(creep.pos.inRangeTo(container,3)){
                 creep.moveTo(container,{range:1,ignoreCreeps:false})
