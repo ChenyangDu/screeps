@@ -60,7 +60,7 @@ module.exports.loop = function () {
     newRoom.run();
     
     autoConSite.test();
-
+    
     // 清理内存
     clear();
 }

@@ -30,7 +30,7 @@ module.exports = {
                 if(energyCap < 650)continue;
 
                 //给每个source上面插旗
-                // solve(flag);
+                solve(flag);
                 
                 runReserve(reserveRoom)
                 defendCoreRoom(reserveRoom)
@@ -58,6 +58,8 @@ module.exports = {
         if(!outroom.controller)return
         // 有主的就算了
         if(outroom.controller.level > 0)return;
+        // todo 别人的外矿
+
         let res = findSpawnRoom(outroom)
         if(res == null)return
         let spawnroom = res.room
@@ -90,7 +92,8 @@ module.exports = {
         }
         // 距离最短的4个房间作为外矿
         outrooms.sort((a,b)=>(a.dis - b.dis))
-        let len = Math.min(outrooms.length,2)
+        
+        let len = Math.min(outrooms.length,spawnroom.controller.level>=7?3:2)
         for(let i=0;i<len;i++){
             let pos = new RoomPosition(25,25,outrooms[i].roomName)
             let flag = Game.flags[spawnroom.name+"_"+outrooms[i].roomName]
@@ -110,7 +113,7 @@ module.exports = {
 }
 // 在每个source上面插"黄橙"旗
 function solve(flag){
-    if(Game.time %200 != 0)return;
+    if(Game.time %199 != 0)return;
     const roomName = flag.pos.roomName;
     const room = Game.rooms[roomName]
     if(!room){
@@ -175,12 +178,13 @@ function runFlag(flag){
 
     
     autoSpawn('歼20_'+flag.name,
-        spawnCtrl.getbody([],[MOVE,MOVE,MOVE,CARRY,CARRY,WORK,WORK,WORK,WORK,],room.energyCapacityAvailable)
+        spawnCtrl.getbody([],[MOVE,MOVE,MOVE,CARRY,CARRY,WORK,WORK,WORK,WORK,],room.energyCapacityAvailable,18)
         ,100,roomName,harvester,flag)
 
-    autoSpawn('运20_'+flag.name,
-        spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],room.energyCapacityAvailable)
-        ,100,roomName,carryer,flag)
+    if(flag.memory.containerID) // container没建好就算了
+        autoSpawn('运20_'+flag.name,
+            spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],room.energyCapacityAvailable)
+            ,100,roomName,carryer,flag)
 
     let transferTarget = getTransferTarget(room)
     
@@ -226,7 +230,7 @@ function runFlag(flag){
             },
             }
         );
-        for(let i=0;i<path.path.length;i++){
+        for(let i=0;i<path.path.length-1;i++){
             let pos = path.path[i];
             let type = STRUCTURE_ROAD
             if(i==0){
@@ -241,12 +245,24 @@ function runFlag(flag){
 }
 
 function harvester(creep,flag){
-    if(Game.time % 17 == 0 && creep.store.getFreeCapacity() == 0){
+    if(Game.time % 17 == 0 ){
         if(creep.store.energy && creep.room.find(FIND_MY_CONSTRUCTION_SITES).length){
             creep.memory.role = 'builder';
             creep.memory.building = true;
         }
-        else creep.memory.role = null
+        else {
+            creep.memory.role = null
+            let container = Game.getObjectById(flag.memory.containerID)
+            if(!container && Game.rooms[flag.pos.roomName]){
+                let containers = flag.pos.findInRange(FIND_STRUCTURES,1,{
+                    filter:(o)=>(o.structureType == STRUCTURE_CONTAINER)
+                })
+                if(containers.length){
+                    container = containers[0];
+                    flag.memory.containerID = container.id;
+                }
+            }
+        }
     }
     if(creep.memory.role)return;
     
@@ -269,6 +285,8 @@ function harvester(creep,flag){
     if(flag.memory.resourceID){
         container = Game.getObjectById(flag.memory.containerID)
     }
+
+    
     
     if(creep.pos.isNearTo(flag)){
         if(!container || container.store.getFreeCapacity('energy'))
@@ -300,13 +318,14 @@ function harvester(creep,flag){
             }
         }
     }
-    let struct = creep.pos.lookFor(LOOK_STRUCTURES)
-    if(struct.length)struct = struct[0];
-    else struct = null;
-    if(struct && struct.hitsMax - struct.hits >= 500 && creep.store.energy){
-        creep.repair(struct)
+    if(!creep.room.controller || creep.room.controller.level == 0){
+        let struct = creep.pos.lookFor(LOOK_STRUCTURES)
+        if(struct.length)struct = struct[0];
+        else struct = null;
+        if(struct && struct.hitsMax - struct.hits >= 500 && creep.store.energy){
+            creep.repair(struct)
+        }
     }
-    
 }
 
 function carryer(creep,flag){
@@ -317,23 +336,15 @@ function carryer(creep,flag){
     if(flag.memory.resourceID){
         container = Game.getObjectById(flag.memory.containerID)
     }
-    if(!container && Game.rooms[flag.pos.roomName]){
-        var resources = flag.pos.findInRange(FIND_STRUCTURES,1,{
-            filter:(o)=>(o.structureType == STRUCTURE_CONTAINER)
-        })
-        if(resources.length){
-            container = resources[0];
-            flag.memory.containerID = container.id;
-        }
-    }
+    
     if(creep.store.getFreeCapacity() == 0){
-        let storage = getTransferTarget(room)
-        if(!storage)return;
-        if(creep.pos.isNearTo(storage)){
-            creep.transfer(storage,'energy')
+        let target = getTransferTarget(room)
+        if(!target)return;
+        if(creep.pos.isNearTo(target)){
+            creep.transfer(target,'energy')
             creep.moveTo(flag)
         }else{
-            creep.moveTo(storage,{range:1})
+            creep.moveTo(target,{range:1})
         }
     }else if(container){
         if(creep.pos.isNearTo(container)){
@@ -415,7 +426,6 @@ function runReserve(reserveRoom){
                 tick = room.controller.reservation.ticksToEnd
             }
         if(tick <= 2000 ){
-            var spawn = getAvaliableSpawn(reserveRoom.spawn)
             var baseBody = [CLAIM,MOVE],baseCost = 650
             var body = [],cost = 0
             while(cost + baseCost <= Game.rooms[reserveRoom.spawn].energyCapacityAvailable && body.length + baseBody.length <= 8){
@@ -445,7 +455,7 @@ function defendCoreRoom(defendRoom){
             if(creep.pos.isNearTo(targets[0])){
                 creep.attack(targets[0])
             }else{
-                creep.moveTo(targets[0],{range:1,maxRooms:1})
+                creep.moveTo(targets[0],{range:1,maxRooms:1,ignoreCreeps:false})
             }
         }
         
@@ -531,7 +541,7 @@ function findSpawnRoom(outroom){
     for(let room of Game.myrooms){
         
         if(disRoom(room.name,outroom.name) <= 2){
-            
+            FIND_CONSTRUCTION_SITES
             // 计算两个矿点到达出生房间内的距离
             let target = getTransferTarget(room)
             if(!target)continue
@@ -541,7 +551,11 @@ function findSpawnRoom(outroom){
                 if(!res.incomplete) dis += res.path.length
             })
             dis /= sources.length
+            
             if(dis > 0){
+                if(sources.length == 1){
+                    dis += 25; //单矿增加惩罚，尽量选双矿
+                }
                 spawnrooms.push({
                     room,dis,
                 })

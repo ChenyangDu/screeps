@@ -97,6 +97,12 @@ function addCnt(roomName,creep){
     allCreeps[roomName][creep.memory.role].push(creep)
 }
 
+function getRole(roomName,role){
+    if(allCreeps[roomName] && allCreeps[roomName][role])
+        return allCreeps[roomName][role]
+    return []
+}
+
 function getCnt(roomName,role){
     if(allCreeps[roomName] && allCreeps[roomName][role])return allCreeps[roomName][role].length;
     return 0;
@@ -265,7 +271,17 @@ function needUpgrader(room){
         
         if(upgraders >= 8){
             needToSpawn = false;
-        } 
+        }
+        // 最年轻的creep在1400以上，说明刚刚出生了一个builder，暂时不生
+        let creeps = getRole(room.name,"upgrader").concat(getRole(room.name,"builder"))
+        let max_life = 0;
+        creeps.forEach(creep=>{
+            if(creep.ticksToLive > max_life)
+                max_life = creep.ticksToLive
+        })
+        if(max_life >= 1350){
+            needToSpawn = false
+        }
         /*
         if(upgraders  >= 7 && Game.rooms[room].controller.level == 7)
             needToSpawnUpgrader = false;*/

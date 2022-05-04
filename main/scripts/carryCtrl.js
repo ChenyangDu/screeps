@@ -130,6 +130,7 @@ function returnCreep(room,creepName){
 function end(){
     Game.myrooms.forEach(room=>{
         if(needCarryer(room)){
+            room.memory.carryctrl.busyTicks = -100
             spawn(room)
         }
     })
@@ -156,10 +157,11 @@ function needCarryer(room){
         room.memory.carryctrl.busyTicks >>= 1;
     }
     // console.log(room.memory.carryctrl.busyTicks)
-    
+    if(room.memory.carryctrl.busyTicks <= -95){
+        return false
+    }
     if(room.memory.carryctrl.busyTicks >= 50){
         console.log("busyTicks >= 50",room.memory.carryctrl.busyTicks)
-        room.memory.carryctrl.busyTicks = -100
         return true
     }
 
@@ -201,8 +203,10 @@ function spawn(room,isEmergency=false){
             return;
         }
 
+    let body_len = 24
+    if(room.energyCapacityAvailable >= 4000)body_len = 48;
     let body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
-        room.energyCapacityAvailable,24)
+        room.energyCapacityAvailable,body_len)
     let memory = {role:'carryer'}
     let allCreeps = baseCreep.getAllCreeps()
     console.log(room.name,allCreeps[room.name],allCreeps[room.name]["carryer"] ,
@@ -212,16 +216,16 @@ function spawn(room,isEmergency=false){
             // 紧急情况的carryer
             console.log('emergency',room.energyAvailable)
         body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
-            room.energyAvailable,24)
+            room.energyAvailable,body_len)
         }else{
             // 非紧急情况的carryer
             
             // todo 如果有boost条件, 对比市场价格，判断boost是否合适
             let terminal = room.terminal
-            if(terminal && terminal.store.getUsedCapacity('KH') >= 16*30){
+            if(terminal && terminal.store.getUsedCapacity('KH') >= body_len*2/3*30){
                 console.log('boost carry spawn');
                 body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
-                    room.energyCapacityAvailable,12)
+                    room.energyCapacityAvailable,body_len/2)
                 let labCtrl = require('labCtrl')
                 memory.boost = labCtrl.boost_init_creep_memory({'KH':body.length/3*2})
                 memory.boosted = false

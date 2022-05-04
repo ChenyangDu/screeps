@@ -52,6 +52,9 @@ module.exports = {
 function runRoom(room){
     if(!room.memory.miner)return
     let memory = room.memory.miner
+    let miner = Game.getObjectById(memory.id)
+    // console.log(!miner.amount)
+    if(!miner || !miner.amount)return;
     let pos = new RoomPosition(memory.pos.x,memory.pos.y,room.name)
     let container = pos.findInRange(FIND_STRUCTURES,1,{
         filter:o=>o.structureType == STRUCTURE_CONTAINER
@@ -68,7 +71,7 @@ function runRoom(room){
         spawnCtrl.addSpawnList(room.name,body,"miner_"+room.name)
     }else{
         if(harvester.pos.isEqualTo(pos)){
-            let miner = Game.getObjectById(memory.id)
+            
             if(miner && Game.time%6==0){
                 harvester.harvest(miner)
             }

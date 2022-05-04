@@ -197,10 +197,10 @@ function boost(room,opt,creep){
                 if(creep_memory.materials[ _type ] &&
                     creep_memory.materials[ _type ].done == false){
                         let lab = Game.getObjectById(id)
-                        if(lab.mineralType == _type){
+                        if(lab.mineralType == _type && 
+                            lab.store.getUsedCapacity("energy")*3>= lab.store[_type]*2 ){
                             labs.push(lab)
                         }
-                        
                     }
             }
             // console.log(labs)
@@ -439,7 +439,11 @@ function solve_product(room){
                     }
             }
         }
-        pre_products.sort((a,b)=>(a.amount - b.amount))
+        pre_products.sort((a,b)=>{
+            if(a.amount != b.amount)
+                return a.amount - b.amount
+            return a.type.length < b.type.length
+        })
         let str = ""
         for(let o of pre_products){
             str += o.type + o.amount + " "
@@ -592,7 +596,7 @@ function getLimitMax(type){
 
 function getAllType(type,room,labs,creeps){
     // 从两个地方获取，一个是建筑，一个是creep
-    if(UNLIMITED_RESOURCES.indexOf(type) != -1) return 1000000;
+    // if(UNLIMITED_RESOURCES.indexOf(type) != -1) return 1000000;
     let amount = 0;
     if(room.storage)
         amount += room.storage.store[type];

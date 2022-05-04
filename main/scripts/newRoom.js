@@ -6,12 +6,19 @@ module.exports = {
             if(flagName.startsWith("Main_")){
                 let flag = Game.flags[flagName]
                 let roomName = flag.pos.roomName
-
+                
                 if(!flag.room || !flag.room.controller.my){
-                    runClaim(flag,getHelpRoom(roomName),roomName)
+                    let helpRoom = getHelpRoom(roomName)
+                    if(helpRoom){
+                        runClaim(flag,helpRoom,roomName)
+                    }
                 }
                 if(flag.room && flag.room.controller.my && flag.room.controller.level <= 2){
-                    runHelpBuilder(flag,getHelpRoom(roomName),roomName)
+                    
+                    let helpRoom = getHelpRoom(roomName)
+                    if(helpRoom){
+                        runHelpBuilder(flag,helpRoom,roomName)
+                    }
                 }
             }
         }
@@ -27,6 +34,7 @@ function getHelpRoom(roomName){
             }
         }
     }
+    return null;
 }
 
 function runClaim(flag,highRoomName,lowRoomName){
