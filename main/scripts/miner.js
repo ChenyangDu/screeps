@@ -53,8 +53,8 @@ function runRoom(room){
     if(!room.memory.miner)return
     let memory = room.memory.miner
     let miner = Game.getObjectById(memory.id)
-    // console.log(!miner.amount)
-    if(!miner || !miner.amount)return;
+    // console.log(miner.mineralAmount)
+    if(!miner || !miner.mineralAmount)return;
     let pos = new RoomPosition(memory.pos.x,memory.pos.y,room.name)
     let container = pos.findInRange(FIND_STRUCTURES,1,{
         filter:o=>o.structureType == STRUCTURE_CONTAINER
