@@ -202,16 +202,16 @@ function needCarryer(room){
  */
 function spawn(room,isEmergency=false){
     // 如果spawn列表中存在carryer
-    if(spawnCtrl.getList(room,
-        o=>o.opt && o.opt.memory && o.opt.memory.role == 'carryer').length > 0){
-            return;
-        }
+    let spawnlist = spawnCtrl.getList(room,
+        o=>o.opt && o.opt.memory && o.opt.memory.role == 'carryer')
+    
 
     let body_len = 24
     if(room.energyCapacityAvailable >= 4000)body_len = 48;
     let body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
         room.energyCapacityAvailable,body_len)
     let memory = {role:'carryer'}
+
     let allCreeps = baseCreep.getAllCreeps()
     console.log(room.name,allCreeps[room.name],allCreeps[room.name]["carryer"] ,
    )
@@ -221,6 +221,7 @@ function spawn(room,isEmergency=false){
             console.log('emergency',room.energyAvailable)
         body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
             room.energyAvailable,body_len)
+            
         }else{
             // 非紧急情况的carryer
             
@@ -234,7 +235,10 @@ function spawn(room,isEmergency=false){
                 memory = labCtrl.boost_init_creep_memory({'KH':body.length/3*2},memory)
             }
         }
-    console.log('carry body :',body)
+    if(spawnlist.length > 0){
+        spawnlist[0].body = body
+        return;
+    }
     spawnCtrl.addSpawnList(room.name,body,'carryer'+Game.time%1000,
         {memory},3)
 }

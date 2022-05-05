@@ -19,6 +19,11 @@ module.exports = {
                     if(helpRoom){
                         runHelpBuilder(flag,helpRoom,roomName)
                     }
+                }else if(flag.room && flag.room.controller.my && flag.room.storage && !flag.room.terminal){
+                    let helpRoom = getHelpRoom(roomName)
+                    if(helpRoom){
+                        runHelpEnergy(flag,helpRoom,roomName)
+                    }
                 }
             }
         }
@@ -66,7 +71,7 @@ function runClaim(flag,highRoomName,lowRoomName){
 }
 
 function runHelpBuilder(flag,highRoomName,lowRoomName){
-    let creepName = 'help_'+lowRoomName
+    let creepName = 'help_'+lowRoomName+'_'+highRoomName
     let creep = Game.creeps[creepName]
     if(!creep){
         // todo 如果有boost条件, 对比市场价格，判断boost是否合适
@@ -99,4 +104,50 @@ function runHelpBuilder(flag,highRoomName,lowRoomName){
         }
         
     }
+}
+
+function  runHelpEnergy(flag,highRoomName,lowRoomName){
+    let creepName = 'help_'+lowRoomName+'_'+highRoomName
+    let creep = Game.creeps[creepName]
+    let highroom = Game.rooms[highRoomName]
+    if(!highroom)return;
+
+    if(!creep){
+        let body = spawnCtrl.getbody([],[CARRY,MOVE,],highroom.energyCapacityAvailable)
+        spawnCtrl.addSpawnList(
+            highRoomName,
+            body,
+            creepName,
+        )
+    }else{
+        creep.say("help")
+        let lowroom = Game.rooms[lowRoomName]
+        if(!lowroom)return;
+        if(lowroom && lowroom.storage){
+            if(creep.store.getUsedCapacity()){//有能量
+                if(creep.pos.isNearTo(lowroom.storage)){
+                    creep.transfer(lowroom.storage,"energy")
+                    creep.suicide()
+                }else{
+                    creep.moveTo(lowroom.storage)
+                }
+            }else{//没能量
+                let target
+                if(highroom.terminal.store.getUsedCapacity("energy") >= creep.store.getFreeCapacity("energy")){
+                    target = highroom.terminal
+                }else if(highroom.storage.store.getUsedCapacity("energy") >= creep.store.getFreeCapacity("energy")){
+                    target = highroom.storage
+                }
+                if(target){
+                    if(creep.pos.isNearTo(target)){
+                        creep.withdraw(target,"energy")
+                        creep.moveTo(lowroom.storage)
+                    }else{
+                        creep.moveTo(target)
+                    }
+                }
+            }
+        }
+    }
+
 }

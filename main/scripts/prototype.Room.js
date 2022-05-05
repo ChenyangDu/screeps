@@ -1,6 +1,5 @@
 if(!Memory['prototype'])Memory['prototype'] = {};
 
-
 Room.prototype.tStorage = function(){
     let controller = this.controller;
 

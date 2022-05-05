@@ -503,7 +503,7 @@ function do_reaction(room){
 
     for(let i = 0 ;i < Math.min(2,labs.length);i++){
         let lab = labs[i]
-        if(memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
+        if(memory.boost_labs && memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
         if(lab.mineralType && lab.mineralType != memory.materials[i]){ // 如果原料炉装了杂质
             let creep = runCreep.getCreep(room,"reaction")
             if(creep){
@@ -568,7 +568,7 @@ function do_reaction(room){
 
     for(let i = 2;i<labs.length;i++){
         let lab = labs[i]
-        if(memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
+        if(memory.boost_labs && memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
         if(lab.mineralType && lab.mineralType != memory.product){ // 如果产物炉装了杂质
             let creep = runCreep.getCreep(room,"reaction")
             if(creep){

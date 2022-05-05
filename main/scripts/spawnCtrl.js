@@ -6,9 +6,9 @@
  * 其中包含{body,name,opt,priority}四个属性
  * priority为优先级
  * 优先级总共分为1-10级，默认5级
- * 1级：万能harvester
+ * 1级：搬运工
  * 2级：矿机
- * 3级：搬运工
+ * 3级：
  * 
  */
 module.exports = {

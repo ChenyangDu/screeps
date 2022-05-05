@@ -14,6 +14,9 @@
  * 
  */
 let carryCtrl = require("carryCtrl")
+
+let fillext = false;
+
 module.exports = {
     run(){
         for(let room of Game.myrooms){
@@ -88,6 +91,11 @@ module.exports = {
             creeps.forEach(creep=>{
                 creep.working = false
             })
+
+            fillext = false;//默认没有人填ext
+            if(room.energyAvailable == room.energyCapacityAvailable){
+                fillext = true;
+            }
 
             // 处理半能量的
             for(let i=0;i<creeps.length;i++){
@@ -278,13 +286,23 @@ function findWithdrawTarget(creep,withdrawTargets){
     return target
 }
 function findTransferTarget(creep,transferTargets){
+    // 如果没有人填spawn或者ext，就不能弄别的
+    
     let target = creep.pos.findClosestByPath(transferTargets,{
         filter:struct=>{
-            
+            if(!fillext){
+                if(struct.structureType != STRUCTURE_SPAWN && 
+                    struct.structureType != STRUCTURE_EXTENSION){
+                        return false;
+                    }
+            }
             return struct.est_energy <
                 struct.store.getCapacity("energy")
         }
     })
+    if(target && (target.structureType == STRUCTURE_SPAWN || target.structureType == STRUCTURE_EXTENSION)){
+        fillext = true;
+    }
     return target
 }
 

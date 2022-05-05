@@ -64,6 +64,7 @@ module.exports.loop = function () {
     
     // 清理内存
     clear();
+    Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }
 
 function clear(){

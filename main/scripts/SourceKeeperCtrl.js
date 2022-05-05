@@ -93,7 +93,7 @@ function flagRun(flag){
                 body = [MOVE,MOVE,MOVE,CARRY,WORK,WORK,WORK,WORK,WORK,
                     MOVE,MOVE,WORK,WORK,WORK,WORK,WORK]
             }
-            spawnCtrl.addSpawnList(flag.pos.roomName,body,needToSpawnName,{},priority=1)
+            spawnCtrl.addSpawnList(flag.pos.roomName,body,needToSpawnName,{},priority=2)
             // spawn.spawnCreep(body,needToSpawnName)
         }
     }

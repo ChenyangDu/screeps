@@ -4,6 +4,7 @@
  */
 var roleUpgrader = require('role.upgrader');
 var roleBuilder = require('role.builder');
+var roleHarvester = require('role.harvester_old');
 var carryTaskCtrl = require('carryTaskCtrl')
 var spawnCtrl = require('spawnCtrl');
 var eye = require('eye')
@@ -67,7 +68,7 @@ function runCreep(){
         let creeps = allCreeps[roomName]["harvester"]
         if(creeps && creeps.length)
             for(let creep of creeps){
-                // roleHarvester.run(creep);
+                roleHarvester.run(creep);
             }
         // upgrader
         creeps = allCreeps[roomName]["upgrader"]
@@ -201,11 +202,17 @@ function spawnHarvesterReal(room){
             cost += baseCost
             body = body.concat(baseBody)
         }
-        priority = 2
+        priority = 1
     }
-    spawnCtrl.addSpawnList(room.name,body,
-        'harvester'+Game.time%1000,
-        {memory:{role:'harvester',harvesting : false}},priority)
+    let list = spawnCtrl.getList(room,o=>o.opt && o.opt.memory && o.opt.memory.role == role)
+    if(list.length > 0){
+        list[0].body = body
+    }else{
+        spawnCtrl.addSpawnList(room.name,body,
+            'harvester'+Game.time%1000,
+            {memory:{role:'harvester',harvesting : false}},priority)
+    }
+    
 }
 /**
  * 判断房间是否有能量来源
