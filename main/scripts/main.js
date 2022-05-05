@@ -15,6 +15,7 @@ require('prototype.Creep.move')
 require('prototype.Room')
 
 module.exports.loop = function () {
+    
     Game.myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my
     && x.controller.level > 0);
     // 对穿
@@ -52,13 +53,13 @@ module.exports.loop = function () {
 
     // labCtrl.boost(Game.rooms['W8N3'],{'KH':2},Game.creeps["carryer_test"])
     // labCtrl.boost(Game.rooms['W8N3'],{'ZH':8,'ZO':2},null)
-    labCtrl.reaction(Game.rooms['W8N3'])
-    labCtrl.end(Game.rooms['W8N3'])
+
+    newRoom.run();
+    labCtrl.reaction()
+    labCtrl.end() // 所有boost操作要在这之前
 
     carryCtrl.end();
 
-    newRoom.run();
-    
     autoConSite.test();
     
     // 清理内存

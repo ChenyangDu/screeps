@@ -112,9 +112,13 @@ module.exports={
             }
         })
     },
-    end(room){
-        boost_fill(room)
-        runCreep.end(room)
+    end(){
+        Game.myrooms.forEach(room=>{
+            if(room.controller.level >= 6){
+                boost_fill(room)
+                runCreep.end(room)
+            }
+        })
     },
     reaction,
     boost,
@@ -138,16 +142,28 @@ function boost_init(room){
     room.memory.lab.boost = {}
 }
 
-function boost_init_creep_memory(opt){
-    let b = {}
-    b.materials = {}
+/**
+ * memory = labCtrl.boost_init_creep_memory({'LH':body.length/3},memory)
+ * @param {*} opt 
+ * @param {*} memory 
+ * @returns 
+ */
+function boost_init_creep_memory(opt,memory){
+    if(!memory.boost){
+        memory.boost = {}
+    }
+    let b = memory.boost
+    if(!b.materials)
+        b.materials = {}
     for(let type in opt){
         let amount = opt[type]
         b.materials[type] = {
             amount,done:false
         }
     }
-    return b
+    memory.boosted = false
+    memory.boost = b
+    return memory
 }
 /**
  * 三种用法，第一种是提前给creep的memory写好，然后运行(null,null,creep)
@@ -235,7 +251,7 @@ function boost(room,opt,creep){
 function boost_fill(room){
     let memory = room.memory.lab;
     let boost = room.memory.lab.boost
-    let str = ""
+    let str = ""+room.name+" "
     for(let type in boost){
         str += type + boost[type]+" "
     }

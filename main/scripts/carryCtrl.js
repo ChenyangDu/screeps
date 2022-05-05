@@ -130,7 +130,7 @@ function returnCreep(room,creepName){
 function end(){
     Game.myrooms.forEach(room=>{
         if(needCarryer(room)){
-            room.memory.carryctrl.busyTicks = -100
+            room.memory.carryctrl.busyTicks = -1*(room.controller.level*10+30)
             spawn(room)
         }
     })
@@ -154,9 +154,13 @@ function needCarryer(room){
 
     // 没有失败的借creep请求
     if(room.memory.carryctrl.busyTicks >0 && room.memory.carryctrl.busyTicks == room.memory.carryctrl.busyTicks_old){
-        room.memory.carryctrl.busyTicks >>= 1;
+        room.memory.carryctrl.busyTicks = Math.floor(room.memory.carryctrl.busyTicks*0.7);
     }
     // console.log(room.memory.carryctrl.busyTicks)
+    try{
+        let flag = Game.flags["Main_"+room.name]
+        new RoomVisual(room.name).text(room.memory.carryctrl.busyTicks,flag.pos.x,flag.pos.y-1)
+    }catch(e){}
     if(room.memory.carryctrl.busyTicks <= -95){
         return false
     }
@@ -227,11 +231,8 @@ function spawn(room,isEmergency=false){
                 body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
                     room.energyCapacityAvailable,body_len/2)
                 let labCtrl = require('labCtrl')
-                memory.boost = labCtrl.boost_init_creep_memory({'KH':body.length/3*2})
-                memory.boosted = false
+                memory = labCtrl.boost_init_creep_memory({'KH':body.length/3*2},memory)
             }
-
-
         }
     console.log('carry body :',body)
     spawnCtrl.addSpawnList(room.name,body,'carryer'+Game.time%1000,

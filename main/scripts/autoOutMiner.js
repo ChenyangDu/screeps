@@ -246,9 +246,11 @@ function runFlag(flag){
 
 function harvester(creep,flag){
     if(Game.time % 17 == 0 ){
-        if(creep.store.energy && creep.room.find(FIND_MY_CONSTRUCTION_SITES).length){
-            creep.memory.role = 'builder';
-            creep.memory.building = true;
+        if(creep.room.find(FIND_MY_CONSTRUCTION_SITES).length){
+            if(!creep.memory.role){
+                creep.memory.role = 'builder';
+                creep.memory.building = true;
+            }
         }
         else {
             creep.memory.role = null

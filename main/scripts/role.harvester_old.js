@@ -1,16 +1,24 @@
 var roleHarvester = {
     /** @param {Creep} creep **/
     getEnergy:function(creep){
-        const harvestTarget = findWithdrawTarget(creep)
-        
+        const harvestTarget = findWithdrawTarget(creep,true)
         if(harvestTarget){
             creep.memory.harvestTarget = harvestTarget.id;
             if(creep.pos.isNearTo(harvestTarget)){
+                if(harvestTarget instanceof Resource){
+                    if(creep.pickup(harvestTarget) == OK){
+                        creep.memory.harvestTarget = null;
+                    }
+                }
+                if(harvestTarget instanceof Source){
+                    if(creep.harvest(harvestTarget) != OK){
+                        creep.memory.harvestTarget = null;
+                    }
+                }
                 if(creep.withdraw(harvestTarget,RESOURCE_ENERGY) == OK){
                     creep.memory.harvestTarget = null;
-                }else{
-                    creep.pickup(harvestTarget)
                 }
+                
             }else if(creep.pos.inRangeTo(harvestTarget,3)){
                 creep.moveTo(harvestTarget,{range:1,ignoreCreeps:false})
             }else{
@@ -188,7 +196,7 @@ function findTransferTarget(creep,exptID=null){
     return transferTarget;
 }
 
-function findWithdrawTarget(creep){
+function findWithdrawTarget(creep,haveWorkPart=false){
     var harvestTarget = Game.getObjectById(creep.memory.harvestTarget);
         
     if(!harvestTarget)
@@ -214,7 +222,7 @@ function findWithdrawTarget(creep){
     }
     
     let resource = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES,{
-        filter:(o)=>(o.resourceType == RESOURCE_ENERGY)
+        filter:(o)=>(o.resourceType == RESOURCE_ENERGY && o.amount >= creep.store.getFreeCapacity())
     });
     if(resource){
         if(!harvestTarget){
@@ -239,6 +247,20 @@ function findWithdrawTarget(creep){
         creep.room.terminal.store[RESOURCE_ENERGY] >= creep.carryCapacity){
             harvestTarget = creep.room.terminal;
         }
+    if(!harvestTarget){
+        let source = creep.pos.findClosestByPath(FIND_SOURCES_ACTIVE,{
+            ignoreCreeps:false
+        });
+        if(source){
+            harvestTarget = source
+        }
+    }
+    resource = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES,{
+        filter:(o)=>(o.resourceType == RESOURCE_ENERGY && o.amount >= creep.store.getFreeCapacity())
+    });
+    if(!harvestTarget && resource){
+        harvestTarget = resource
+    }
     return harvestTarget
 }
 
@@ -253,6 +275,12 @@ function canBeHarvestd(creep,target){
     if(!target)return false;
     // 如果是掉落的
     if(target.resourceType)ok = true;
+
+    // 如果是矿点
+    if(target instanceof Source){
+        if(target.energy)ok = true;
+        if(creep.ticksToLive % 15 == 0)ok = false
+    }
     switch(target.structureType){
         case STRUCTURE_CONTAINER :
             if(target.store[RESOURCE_ENERGY] >= Math.min(400, creep.store.getFreeCapacity('energy')))ok = true;

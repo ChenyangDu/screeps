@@ -81,7 +81,7 @@ function runCreep(creep){
 
 
 function watchRoom(room){
-    console.log('watch',room)
+    // console.log('watch',room)
     autoOutMiner.watchReverse(room)
 }
 

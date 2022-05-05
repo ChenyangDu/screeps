@@ -64,16 +64,17 @@ module.exports = {
 
             str = 'withdraw '
             withdrawTargets.forEach(t => {
-                str += t.structureType + ' '
+                str += (t.structureType?t.structureType:t) + ' '
             });
             str += '\ntransfer '
             transferTargets.forEach(t => {
                 str += t.structureType + ' '
             });
-            // console.log(room,str)
-
-            // 借用creep
             
+            // console.log(room,str)
+                
+            
+            // 借用creep
             if(needBorrow(creeps,withdrawTargets,transferTargets,capacity)){
                 let creepName = carryCtrl.borrowCreep(room,60)
                 if(creepName && Game.creeps[creepName]){
@@ -170,11 +171,13 @@ module.exports = {
 }
 
 function needBorrow(creeps,withdrawTargets,transferTargets,capacity){
+    
     if (withdrawTargets.length && transferTargets.length){
         if(creeps.length == 0)return true;
         if(creeps.length < 2 && withdrawTargets.length >= 2){
                 return true
         }
+        // 要交的能量大于creep总容量
         if(_.sum(transferTargets,(o)=>{
             if(o.structureType == STRUCTURE_STORAGE || o.structureType == STRUCTURE_TERMINAL)
                 return Math.min(capacity,o.store.getFreeCapacity("energy"))
@@ -182,6 +185,8 @@ function needBorrow(creeps,withdrawTargets,transferTargets,capacity){
         }) > capacity * creeps.length){
             return true;
         }
+
+        // 要抽取的能量大于creep总容量
         if(_.sum(withdrawTargets,(o)=>{
             if(o.structureType == STRUCTURE_STORAGE || o.structureType == STRUCTURE_TERMINAL)
                 return Math.min(capacity,o.store.getUsedCapacity("energy"))
@@ -192,6 +197,8 @@ function needBorrow(creeps,withdrawTargets,transferTargets,capacity){
         }) > capacity * creeps.length){
             return true
         }
+        
+        
     }
 }
 
@@ -334,17 +341,11 @@ function findTransferTargets(room){
     })
     let creeps = room.find(FIND_MY_CREEPS,{
         filter:(creep) =>{
-            // if(room.name == 'W3N1'){
-            //     console.log(creep.memory , creep.memory.role ,
-            //         (creep.memory.role == 'builder' || creep.memory.role == 'upgrader') ,
-            //         creep.store.getUsedCapacity() == 0)
-            // }
             return creep.memory && creep.memory.role &&
-                (creep.memory.role == 'builder' || creep.memory.role == 'upgrader') &&
-                creep.store.getUsedCapacity() == 0
+                ((creep.memory.role == 'builder' && creep.memory.building == false) ||
+                ( creep.memory.role == 'upgrader' && creep.memory.upgrading == false)) 
         }
     })
-    // console.log('transfer creeps',creeps)
     transferTargets = transferTargets.concat(creeps)
 
     if(tStorage && tStorage.store.getFreeCapacity("energy") > 400){
