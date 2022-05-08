@@ -5,13 +5,14 @@
 var roleUpgrader = require('role.upgrader');
 var roleBuilder = require('role.builder');
 var roleHarvester = require('role.harvester_old');
-var carryTaskCtrl = require('carryTaskCtrl')
+// var carryTaskCtrl = require('carryTaskCtrl')
 var spawnCtrl = require('spawnCtrl');
-var eye = require('eye')
+var eye = require('eye');
 
 // const myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my)
 
 let allCreeps = {}
+let havConstructionSites = {};
 
 module.exports = {
     run(){
@@ -54,11 +55,12 @@ function init(){
 function runCreep(){
     
     // 搬运任务初始化
-    carryTaskCtrl.registClear();
+    // carryTaskCtrl.registClear();
 
     // 是否有建筑点
-    let havConstructionSites = {};
+    
     for(let room of Game.myrooms){
+        havConstructionSites[room.name] = false
         if(Game.time % 23 == 0 && room.find(FIND_CONSTRUCTION_SITES).length)
             havConstructionSites[room.name] = true;
     }
@@ -204,7 +206,7 @@ function spawnHarvesterReal(room){
         }
         priority = 1
     }
-    let list = spawnCtrl.getList(room,o=>o.opt && o.opt.memory && o.opt.memory.role == role)
+    let list = spawnCtrl.getList(room,o=>o.opt && o.opt.memory && o.opt.memory.role == 'harvester')
     if(list.length > 0){
         list[0].body = body
     }else{
@@ -279,7 +281,7 @@ function needUpgrader(room){
         if(upgraders >= 8){
             needToSpawn = false;
         }
-        // 最年轻的creep在1400以上，说明刚刚出生了一个builder，暂时不生
+        // 最年轻的creep在1350以上，说明刚刚出生了一个builder，暂时不生
         let creeps = getRole(room.name,"upgrader").concat(getRole(room.name,"builder"))
         let max_life = 0;
         creeps.forEach(creep=>{
@@ -292,13 +294,14 @@ function needUpgrader(room){
         /*
         if(upgraders  >= 7 && Game.rooms[room].controller.level == 7)
             needToSpawnUpgrader = false;*/
-    }else if(Game.rooms[room].controller.level == 8){
-        if(upgraders < 1 && Game.rooms[room].storage && Game.rooms[room].storage.store.energy >= 500*1000){
+    }else if(room.controller.level == 8){
+        if(upgraders < 1 && room.storage && room.storage.store.energy >= 500*1000){
             needToSpawn = true;
         }
-        if(Game.rooms[room].controller.ticksToDowngrade <= 150000 && upgraders  == 0)
+        if(room.controller.ticksToDowngrade <= 150000 && upgraders  == 0)
             needToSpawn = true;
-        if(havConstructionSite && upgraders  < 1){
+        
+        if(havConstructionSites[room.name] && upgraders  < 1){
             needToSpawn = true;
         }
     }
@@ -311,12 +314,12 @@ function needUpgrader(room){
 
 function spawnUpgraderReal(room){
     let energyAvai = room.energyCapacityAvailable
-    
+    let body = []
     if(energyAvai <= 300)
         body = [WORK,WORK,CARRY,MOVE]
-    else{
+    else if(room.controller.level <= 7) {
         var baseBody = [WORK,CARRY,MOVE,],baseCost = 200
-        var body = [WORK,CARRY,MOVE,],cost = 200
+        body = [WORK,CARRY,MOVE,],cost = 200
         while(cost + baseCost <= energyAvai && body.length + baseBody.length <= 50){
             cost += baseCost
             body = body.concat(baseBody)
@@ -331,10 +334,15 @@ function spawnUpgraderReal(room){
             cost += baseCost
             body = body.concat(baseBody)
         }
+    }else if(room.controller.level == 8){
+        body = spawnCtrl.getbody([],[WORK,CARRY,MOVE,],room.energyCapacityAvailable,45)
     }
+    
+    let memory = {role:'upgrader',upgrading : false}
+    
     spawnCtrl.addSpawnList(room.name,body,
         'upgrader_'+room.name+'_'+Game.time,
-        {memory:{role:'upgrader',upgrading : false}})
+        {memory})
 }
 
 function energyInContainer(room){

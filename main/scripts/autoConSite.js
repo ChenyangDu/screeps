@@ -6,6 +6,9 @@ module.exports = {
             if(flag && Game.time % 113 == 0){
                 runFlag(flag)
             }
+            if(Game.time % 9973 == 0){
+                removeRoad(room)
+            }
         }
     },
     test:function(){
@@ -50,6 +53,17 @@ function runFlag(flag){
                         break;
                     }
                 }
+                if(type == STRUCTURE_TERMINAL){
+                    if(room.energyCapacityAvailable < 2300 ||
+                         !room.storage || room.storage.store.getUsedCapacity("energy")<10000)
+                    break;
+                }
+                if(type == STRUCTURE_LAB){
+                    if(!(room.terminal && room.storage && 
+                        room.terminal.store.getUsedCapacity("energy") + room.storage.store.getUsedCapacity("energy")>=10000)){
+                            break;
+                        }
+                }
                 //console.log(position.x,position.y)
                 
                 let pos = new RoomPosition(position.x + flag.pos.x,position.y + flag.pos.y,flag.pos.roomName)
@@ -57,9 +71,10 @@ function runFlag(flag){
                 if(!structures.length){
                     if(pos.createConstructionSite(type) == OK){
                         compeleted = false
+                        if(type == STRUCTURE_LAB)break;//lab一个一个造
                     }
                 }
-            
+                
             }
         }
     }
@@ -141,7 +156,10 @@ function controlKeep(flag){
             for(let x = -1;x<=1;x++){
                 for(let y = -1;y<=1;y++){
                     if(x || y){
-                        new RoomPosition(containerPos.x+x,containerPos.y+y,containerPos.roomName).createConstructionSite(STRUCTURE_ROAD)
+                        let pos = new RoomPosition(containerPos.x+x,containerPos.y+y,containerPos.roomName)
+                        if(pos.lookFor(LOOK_TERRAIN)[0] != 'wall'){
+                            pos.createConstructionSite(STRUCTURE_ROAD)
+                        }
                     }
                 }
             }
@@ -234,7 +252,21 @@ function myPathFinder(startPos,target){
         }
     );
 }
-
+function removeRoad(room){
+    room.find(FIND_STRUCTURES,{
+        filter:road=>{
+            if(road.structureType != STRUCTURE_ROAD)return false
+            let structs = road.pos.lookFor(LOOK_STRUCTURES)
+            if(structs.length > 1){
+                structs.forEach(struct => {
+                    if(OBSTACLE_OBJECT_TYPES.indexOf(struct.structureType) != -1){
+                        road.destroy();
+                    }
+                });
+            }
+        }
+    })
+}
 const structureLayout = {
     1: {
         "rcl":1,
@@ -352,7 +384,8 @@ const structureLayout = {
         "rcl":5,
         "buildings":{
             "extension":[
-                {x:2,y:5},{x:3,y:4},{x:3,y:5},{x:5,y:5},{x:6,y:5},{x:6,y:6},
+                {x:9,y:4},
+                {x:3,y:4},{x:3,y:5},{x:5,y:5},{x:6,y:5},{x:6,y:6},
                 {x:7,y:6},{x:7,y:7},{x:7,y:4},{x:8,y:5},{x:8,y:4},{x:8,y:3},
                 {x:8,y:2},{x:7,y:3},{x:4,y:3},{x:5,y:2},{x:4,y:4},{x:6,y:2},
                 {x:6,y:1},{x:7,y:1},{x:5,y:3},{x:8,y:7},{x:8,y:8},{x:9,y:5},
@@ -394,7 +427,7 @@ const structureLayout = {
         "buildings":{
             "extension":[
                 {x:2,y:8},{x:2,y:9},{x:3,y:9},{x:3,y:10},{x:4,y:10},{x:4,y:11},{x:5,y:11},
-                {x:1,y:7},{x:1,y:6},{x:2,y:6},{x:2,y:5},{x:3,y:4},{x:3,y:5},{x:5,y:5},
+                {x:1,y:7},{x:2,y:5},{x:2,y:6},{x:9,y:4},{x:3,y:4},{x:3,y:5},{x:5,y:5},
                 {x:6,y:5},{x:6,y:6},{x:7,y:6},{x:7,y:7},{x:7,y:4},{x:8,y:5},{x:8,y:4},
                 {x:8,y:3},{x:8,y:2},{x:7,y:3},{x:4,y:3},{x:5,y:2},{x:4,y:4},{x:6,y:2},
                 {x:6,y:1},{x:7,y:1},{x:5,y:3},{x:8,y:7},{x:8,y:8},{x:9,y:5},{x:9,y:6},
@@ -441,7 +474,7 @@ const structureLayout = {
         "buildings":{
             "extension":[
                 {x:2,y:8},{x:2,y:9},{x:3,y:9},{x:3,y:10},{x:4,y:10},{x:4,y:11},{x:5,y:11},
-                {x:1,y:7},{x:1,y:6},{x:2,y:6},{x:2,y:5},{x:3,y:4},{x:3,y:5},{x:5,y:5},
+                {x:1,y:7},{x:9,y:4},{x:2,y:6},{x:2,y:5},{x:3,y:4},{x:3,y:5},{x:5,y:5},
                 {x:6,y:5},{x:6,y:6},{x:7,y:6},{x:7,y:7},{x:7,y:4},{x:8,y:5},{x:8,y:4},
                 {x:8,y:3},{x:8,y:2},{x:7,y:3},{x:4,y:3},{x:5,y:2},{x:4,y:4},{x:6,y:2},
                 {x:6,y:1},{x:7,y:1},{x:11,y:9},{x:12,y:9},{x:5,y:3},{x:8,y:7},{x:8,y:8},

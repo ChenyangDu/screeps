@@ -165,14 +165,14 @@ function needCarryer(room){
         return false
     }
     if(room.memory.carryctrl.busyTicks >= 50){
-        console.log("busyTicks >= 50",room.memory.carryctrl.busyTicks)
+        // console.log("busyTicks >= 50",room.memory.carryctrl.busyTicks)
         return true
     }
 
     let allCreeps = baseCreep.getAllCreeps()
     if(!allCreeps || !allCreeps[room.name] || !allCreeps[room.name]["carryer"] ||
         allCreeps[room.name]["carryer"].length == 0){
-            console.log("no carryer")
+            // console.log("no carryer")
             return true;// 如果没有carryer
         }
     // 最长寿命的creep不足100ticks
@@ -188,7 +188,7 @@ function needCarryer(room){
         maxTicks = _.max([maxTicks,ticks])
     })
     if(maxTicks <= 150){
-        console.log("maxTicks <= 150",maxTicks)
+        // console.log("maxTicks <= 150",maxTicks)
         return true
     }
     return false
@@ -213,12 +213,11 @@ function spawn(room,isEmergency=false){
     let memory = {role:'carryer'}
 
     let allCreeps = baseCreep.getAllCreeps()
-    console.log(room.name,allCreeps[room.name],allCreeps[room.name]["carryer"] ,
-   )
+    
     if(!allCreeps || !allCreeps[room.name] || !allCreeps[room.name]["carryer"] ||
         allCreeps[room.name]["carryer"].length == 0){
             // 紧急情况的carryer
-            console.log('emergency',room.energyAvailable)
+            // console.log('emergency',room.energyAvailable)
         body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
             room.energyAvailable,body_len)
             
@@ -228,7 +227,7 @@ function spawn(room,isEmergency=false){
             // todo 如果有boost条件, 对比市场价格，判断boost是否合适
             let terminal = room.terminal
             if(terminal && terminal.store.getUsedCapacity('KH') >= body_len*2/3*30){
-                console.log('boost carry spawn');
+                // console.log('boost carry spawn');
                 body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
                     room.energyCapacityAvailable,body_len/2)
                 let labCtrl = require('labCtrl')

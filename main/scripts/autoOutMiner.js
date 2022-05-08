@@ -92,8 +92,10 @@ module.exports = {
         }
         // 距离最短的4个房间作为外矿
         outrooms.sort((a,b)=>(a.dis - b.dis))
-        
-        let len = Math.min(outrooms.length,spawnroom.controller.level>=7?3:2)
+        let max_out_rooms = 2;
+        if(spawnroom.controller.level == 7)max_out_rooms = 3
+        if(spawnroom.controller.level == 8)max_out_rooms = 4
+        let len = Math.min(outrooms.length,max_out_rooms)
         for(let i=0;i<len;i++){
             let pos = new RoomPosition(25,25,outrooms[i].roomName)
             let flag = Game.flags[spawnroom.name+"_"+outrooms[i].roomName]
@@ -245,11 +247,13 @@ function runFlag(flag){
 }
 
 function harvester(creep,flag){
-    if(Game.time % 17 == 0 ){
-        if(creep.room.find(FIND_MY_CONSTRUCTION_SITES).length){
+    if(Game.time % 23 == 0 ){
+        if(!(creep.room.controller.level>0) && // 不能在生产屋里变builder
+            creep.room.find(FIND_MY_CONSTRUCTION_SITES).length){
             if(!creep.memory.role){
                 creep.memory.role = 'builder';
                 creep.memory.building = true;
+                creep.memory.harvestTarget = null;//防止回到之前的房间取能量
             }
         }
         else {
@@ -374,7 +378,11 @@ function carryer(creep,flag){
     }
     const droppedResources = creep.pos.lookFor(LOOK_RESOURCES);
     if(droppedResources.length) {
-        creep.pickup(droppedResources[0]) 
+        droppedResources.forEach(resource=>{
+            if(resource.resourceType == RESOURCE_ENERGY){
+                creep.pickup(resource) 
+            }
+        })
     }
     const tomb = creep.pos.lookFor(LOOK_TOMBSTONES);
     if(tomb.length){
@@ -423,8 +431,9 @@ function runReserve(reserveRoom){
     const room = Game.rooms[reserveRoom.name]
     if(!creep){
         var tick = 0;
-        if(room && room.controller && 
-            room.controller.reservation && room.controller.reservation.username == 'ChenyangDu'){
+        if(room && room.controller && room.controller.reservation &&
+            Game.rooms[reserveRoom.spawn] && Game.rooms[reserveRoom.spawn].controller &&
+             room.controller.reservation.username == Game.rooms[reserveRoom.spawn].controller.owner.username){
                 tick = room.controller.reservation.ticksToEnd
             }
         if(tick <= 2000 ){
@@ -554,7 +563,7 @@ function findSpawnRoom(outroom){
             })
             dis /= sources.length
             
-            if(dis > 0){
+            if(dis > 0 && dis <=100){
                 if(sources.length == 1){
                     dis += 25; //单矿增加惩罚，尽量选双矿
                 }

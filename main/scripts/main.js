@@ -25,7 +25,7 @@ module.exports.loop = function () {
     SourceKeeperCtrl.run();
 
     //初始化
-    eye.init();
+    // eye.init();
     baseCreep.init();
     labCtrl.init()
     carryCtrl.init();
@@ -41,7 +41,7 @@ module.exports.loop = function () {
     autoConSite.run();
 
     // 生产间谍
-    eye.spawnSpy();
+    // eye.spawnSpy();
 
     spawnCtrl.spawn(); //生产
 
@@ -50,9 +50,6 @@ module.exports.loop = function () {
     miner.run() // miner
     
     carryEnergy.run()
-
-    // labCtrl.boost(Game.rooms['W8N3'],{'KH':2},Game.creeps["carryer_test"])
-    // labCtrl.boost(Game.rooms['W8N3'],{'ZH':8,'ZO':2},null)
 
     newRoom.run();
     labCtrl.reaction()
@@ -64,6 +61,9 @@ module.exports.loop = function () {
     
     // 清理内存
     clear();
+    if(Game.cpu.bucket == 10000){
+        Game.cpu.generatePixel();
+    }
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }
 
@@ -77,7 +77,3 @@ function clear(){
             delete Memory.flags[name];
     }
 }
-/**
- * 第一次运行时需要在控制台运行的代码
- * Memory.towers = {}
- */

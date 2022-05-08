@@ -84,6 +84,7 @@ var runCreep = {
             if(creeps[role].usd == false){
                 if(creeps[role].name){
                     let creep = Game.creeps[creeps[role].name]
+                    if(!creep)continue;
                     if(creep.store.getUsedCapacity() == 0){
                         carryCtrl.returnCreep(room,creeps[role].name)
                         // console.log("return",creeps[role].name);
@@ -316,6 +317,10 @@ function boost_fill(room){
     for(let id in memory.boost_labs){
         let lab = Game.getObjectById(id) // 按之前的代码这里确保能够获取到
         let type = memory.boost_labs[id].type
+        
+        new RoomVisual(room.name).text(type,lab.pos.x,lab.pos.y,{
+            font:0.5,color:'#dc0000'
+        })
         if(lab.mineralType && type != lab.mineralType
              && lab.store[lab.mineralType] > 0){ // 有杂质
             let creep = runCreep.getCreep(room,"boost")
@@ -500,7 +505,10 @@ function do_reaction(room){
         }
         labs.push(Game.getObjectById(id))
     }
-
+    if(labs.length > 0){
+        let pos = labs[0].pos;
+        new RoomVisual(room.name).text(memory.product,pos.x,pos.y)
+    }
     for(let i = 0 ;i < Math.min(2,labs.length);i++){
         let lab = labs[i]
         if(memory.boost_labs && memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
@@ -542,18 +550,21 @@ function do_reaction(room){
                     }
                 }else if(creep.store.getUsedCapacity(type) == 0){
                     // creep为空
-                    let target = null
+                    let withdrawTarget = null
                     if(room.terminal && room.terminal.store[type] > 0){
-                        target = room.terminal
+                        withdrawTarget = room.terminal
                     }
-                    if(!target && room.storage && room.storage.store[type] > 0){
-                        target = room.storage;
+                    if(!withdrawTarget && room.storage && room.storage.store[type] > 0){
+                        withdrawTarget = room.storage;
                     }
-                    if(creep.pos.isNearTo(target)){
-                        creep.withdraw(target,type)
+                    if(!withdrawTarget){//既然storage/terminal都没有，那说明在lab里面
+                        continue;
+                    }
+                    if(creep.pos.isNearTo(withdrawTarget)){
+                        creep.withdraw(withdrawTarget,type)
                         creep.moveTo(lab)
                     }else{
-                        creep.moveTo(target)
+                        creep.moveTo(withdrawTarget)
                     }
                 }else{
                     if(creep.pos.isNearTo(lab)){
@@ -570,7 +581,7 @@ function do_reaction(room){
         let lab = labs[i]
         if(memory.boost_labs && memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
         if(lab.mineralType && lab.mineralType != memory.product){ // 如果产物炉装了杂质
-            let creep = runCreep.getCreep(room,"reaction")
+            let creep = runCreep.getCreep(room,"reaction_clean")
             if(creep){
                 // creep容量为空或者能一次装下，就去装，否则就先倒掉
                 if(creep.store.getUsedCapacity() == 0 ||

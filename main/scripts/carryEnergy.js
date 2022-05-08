@@ -15,7 +15,7 @@
  */
 let carryCtrl = require("carryCtrl")
 
-let fillext = false;
+let extneed = false;
 
 module.exports = {
     run(){
@@ -92,10 +92,9 @@ module.exports = {
                 creep.working = false
             })
 
-            fillext = false;//默认没有人填ext
-            if(room.energyAvailable == room.energyCapacityAvailable){
-                fillext = true;
-            }
+            //ext需要的能量
+            extneed = room.energyCapacityAvailable - room.energyAvailable;
+            
 
             // 处理半能量的
             for(let i=0;i<creeps.length;i++){
@@ -123,6 +122,10 @@ module.exports = {
                                 creepNames.splice(i,1)
                                 i--;
                             }
+                            // ext需要的能量减少，防止所有creep都去填ext
+                            if(transferTarget && (transferTarget.structureType == STRUCTURE_SPAWN || transferTarget.structureType == STRUCTURE_EXTENSION)){
+                                extneed -= creep.store.getUsedCapacity("energy");
+                            }
                         }
                         
                     }
@@ -146,7 +149,10 @@ module.exports = {
                             i--;
                             continue
                         }
-                        
+                    }
+                    // ext需要的能量减少，防止所有creep都去填ext
+                    if(target && (target.structureType == STRUCTURE_SPAWN || target.structureType == STRUCTURE_EXTENSION)){
+                        extneed -= creep.store.getUsedCapacity("energy");
                     }
                     creep.working = true
                 }
@@ -286,23 +292,24 @@ function findWithdrawTarget(creep,withdrawTargets){
     return target
 }
 function findTransferTarget(creep,transferTargets){
-    // 如果没有人填spawn或者ext，就不能弄别的
     
     let target = creep.pos.findClosestByPath(transferTargets,{
         filter:struct=>{
-            if(!fillext){
+            if(extneed > 0 && extneed == creep.room.energyCapacityAvailable - creep.room.energyAvailable){ 
                 if(struct.structureType != STRUCTURE_SPAWN && 
                     struct.structureType != STRUCTURE_EXTENSION){
-                        return false;
+                        return false;// 没人填ext，非ext不填
                     }
             }
+            if(extneed <= 0 && (struct.structureType == STRUCTURE_SPAWN || 
+                struct.structureType == STRUCTURE_EXTENSION)){
+                    return false;// 填ext的够多了，去填别的
+                }
             return struct.est_energy <
                 struct.store.getCapacity("energy")
         }
     })
-    if(target && (target.structureType == STRUCTURE_SPAWN || target.structureType == STRUCTURE_EXTENSION)){
-        fillext = true;
-    }
+    
     return target
 }
 

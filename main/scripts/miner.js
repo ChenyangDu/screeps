@@ -110,12 +110,15 @@ function runRoom(room){
         let carryer = Game.creeps[carryerName]
         if(carryer){
             if(carryer.store.getUsedCapacity() > 0){
-                let terminal = carryer.room.terminal
-                if(terminal){
-                    if(carryer.pos.isNearTo(terminal)){
-                        carryer.transfer(terminal,Object.keys(carryer.store)[0])
+                let target = carryer.room.terminal
+                if(!target){
+                    target = carryer.room.storage
+                }
+                if(target){
+                    if(carryer.pos.isNearTo(target)){
+                        carryer.transfer(target,Object.keys(carryer.store)[0])
                     }else{
-                        carryer.moveTo(terminal)
+                        carryer.moveTo(target)
                     }
                 }else{
                     console.log("error");

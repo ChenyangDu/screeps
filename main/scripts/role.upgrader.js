@@ -1,9 +1,25 @@
 var roleHarvester = require('role.harvester_old')
+let labCtrl = null
 var roleUpgrader = {
 
     /** @param {Creep} creep **/
     run: function(creep) {
-
+        if(!labCtrl){
+            labCtrl = require("labCtrl")
+        }
+        if(creep.memory.boosted === undefined){
+            let terminal = creep.room.terminal
+            
+            if(terminal && terminal.store.getUsedCapacity('GH') > 0){
+                creep.memory = labCtrl.boost_init_creep_memory(
+                    {GH:creep.body.filter(o=>o.type == WORK).length},creep.memory
+                )
+            }
+        }
+        if(!creep.memory.boosted){
+            labCtrl.boost(null,null,creep)
+            return;
+        }
         if(creep.memory.upgrading && creep.carry.energy == 0) {
             creep.memory.upgrading = false;
 	    }
