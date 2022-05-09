@@ -1,10 +1,20 @@
 module.exports = {
+    runRoom(roomName){
+        var flag = Game.flags["Main_" + roomName]
+        console.log(flag)
+        if(flag){
+            runFlag(flag)
+        }
+    },
     run:function(){
         for(let room of Game.myrooms){
             let roomName = room.name;
             var flag = Game.flags["Main_" + roomName]
-            if(flag && Game.time % 113 == 0){
-                runFlag(flag)
+            if(flag){
+                if(room.controller.level == 1 || Game.time % 113 == 0){
+                    
+                    runFlag(flag)
+                }
             }
             if(Game.time % 9973 == 0){
                 removeRoad(room)
@@ -67,19 +77,24 @@ function runFlag(flag){
                 //console.log(position.x,position.y)
                 
                 let pos = new RoomPosition(position.x + flag.pos.x,position.y + flag.pos.y,flag.pos.roomName)
-                let structures = flag.pos.lookFor(LOOK_STRUCTURES).filter((o)=>(o.structureType == type))
-                if(!structures.length){
-                    if(pos.createConstructionSite(type) == OK){
-                        compeleted = false
-                        if(type == STRUCTURE_LAB)break;//lab一个一个造
+                let structures = pos.lookFor(LOOK_STRUCTURES).filter((o)=>(o.structureType == type))
+                let sites = pos.lookFor(LOOK_CONSTRUCTION_SITES)
+                if(sites.length){
+                    compeleted = false
+                }else{
+                    if(!structures.length){
+                        if(pos.createConstructionSite(type) == OK){
+                            compeleted = false
+                            if(type == STRUCTURE_LAB)break;//lab一个一个造
+                        }
                     }
                 }
-                
             }
         }
     }
-    if(compeleted){
-        compeleted = sourceKeep(flag)
+    
+    if(level >= 2 && sourceKeep(flag) == false && compeleted){
+        compeleted = false
     }
     if(level >= 2 && level < 8 && compeleted){
         controlKeep(flag)

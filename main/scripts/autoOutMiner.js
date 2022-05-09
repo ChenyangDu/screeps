@@ -100,8 +100,10 @@ module.exports = {
             let pos = new RoomPosition(25,25,outrooms[i].roomName)
             let flag = Game.flags[spawnroom.name+"_"+outrooms[i].roomName]
             if(!flag){
-                if(Game.rooms[outrooms[i].roomName])
-                pos.createFlag(spawnroom.name+"_"+outrooms[i].roomName,COLOR_YELLOW,COLOR_BROWN)
+                if(Game.rooms[outrooms[i].roomName]){
+                    // pos.createFlag(spawnroom.name+"_"+outrooms[i].roomName,COLOR_YELLOW,COLOR_BROWN)
+                }
+                
             }
         }
         //其他的旗子拔了
@@ -560,6 +562,7 @@ function findSpawnRoom(outroom){
             sources.forEach(source=>{
                 let res = myPathFinder(source.pos,{pos:target.pos,range:1})
                 if(!res.incomplete) dis += res.path.length
+                // todo判断房间是否已经有主了
             })
             dis /= sources.length
             

@@ -8,7 +8,11 @@
  */
 var roleHarvester = require('role.harvester_old')
 var roleBuilder = {
-    
+    /**
+     * 
+     * @param {Creep} creep 
+     * @returns 
+     */
     run: function(creep) {
 	    if(creep.memory.building && creep.carry.energy == 0) {
             creep.memory.building = false;
@@ -21,18 +25,28 @@ var roleBuilder = {
         /*var targets = creep.room.find(FIND_CONSTRUCTION_SITES);
         if(targets.length)targets = targets[0];
         else targets = null;*/
-        var targets = null;
-        if(!targets || targets.room.name != creep.room.name)
-            targets = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
+        
 	    if(creep.memory.building) {
-	       
-            if(targets) {
-                if(creep.pos.inRangeTo(targets,3)){
-                    creep.build(targets)
-                }else if(creep.pos.inRangeTo(targets,5)){
-                    creep.moveTo(targets,{range:3,ignoreCreeps:false})
+            var target = null;
+            if(!target || target.room.name != creep.room.name){
+                target = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
+                if(target && 
+                    (target.structureType != STRUCTURE_ROAD &&
+                        target.structureType != STRUCTURE_CONTAINER)){ //最近的只有是路,容器才能修
+                    let targets = creep.room.find(FIND_CONSTRUCTION_SITES)
+                    if(targets.length){
+                        target = targets[0]
+                    }
+                }
+            }
+                
+            if(target) {
+                if(creep.pos.inRangeTo(target,3)){
+                    creep.build(target)
+                }else if(creep.pos.inRangeTo(target,5)){
+                    creep.moveTo(target,{range:3,ignoreCreeps:false})
                 }else{
-                    creep.moveTo(targets,{range:3});
+                    creep.moveTo(target,{range:3});
                 }
             }else{
                 if(creep.memory.role == 'builder'){

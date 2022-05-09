@@ -41,7 +41,7 @@ module.exports.loop = function () {
     autoConSite.run();
 
     // 生产间谍
-    // eye.spawnSpy();
+    eye.spawnSpy();
 
     spawnCtrl.spawn(); //生产
 
@@ -62,7 +62,7 @@ module.exports.loop = function () {
     // 清理内存
     clear();
     if(Game.cpu.bucket == 10000){
-        Game.cpu.generatePixel();
+        // Game.cpu.generatePixel();
     }
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }

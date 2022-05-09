@@ -8,21 +8,30 @@ module.exports = {
                 let roomName = flag.pos.roomName
                 
                 if(!flag.room || !flag.room.controller.my){
-                    let helpRoom = getHelpRoom(roomName)
-                    if(helpRoom){
-                        runClaim(flag,helpRoom,roomName)
-                        runHelpBuilder(flag,helpRoom,roomName)
+                    let helpRooms = getHelpRooms(roomName)
+                    if(helpRooms.length){
+                        runClaim(flag,helpRooms[0],roomName)
+                        helpRooms.forEach(helpRoom=>{
+                            runHelpBuilder(flag,helpRoom,roomName)
+                        })
                     }
-                }else if(flag.room && flag.room.controller.my && flag.room.controller.level <= 2){
+                }else if(flag.room && flag.room.controller.my && flag.room.controller.level <= 2
+                    && flag.room.energyCapacityAvailable < 550){
                     
-                    let helpRoom = getHelpRoom(roomName)
-                    if(helpRoom){
-                        runHelpBuilder(flag,helpRoom,roomName)
+                    let helpRooms = getHelpRooms(roomName)
+                    if(helpRooms.length){
+                        helpRooms.forEach(helpRoom=>{
+                            runHelpBuilder(flag,helpRoom,roomName)
+                        })
                     }
                 }else if(flag.room && flag.room.controller.my && flag.room.storage && !flag.room.terminal){
-                    let helpRoom = getHelpRoom(roomName)
-                    if(helpRoom){
-                        runHelpEnergy(flag,helpRoom,roomName)
+                    let helpRooms = getHelpRooms(roomName)
+                    if(helpRooms.length){
+                        helpRooms.forEach(helpRoom=>{
+                            if(Game.rooms[helpRoom] && Game.rooms[helpRoom].controller.level >=6){
+                                runHelpEnergy(flag,helpRoom,roomName)
+                            }
+                        })
                     }
                 }
             }
@@ -30,16 +39,17 @@ module.exports = {
     }
 }
 
-function getHelpRoom(roomName){
+function getHelpRooms(roomName){
+    let res = []
     for(let flagName in Game.flags){
         if(flagName.startsWith("help_")){
             let flag = Game.flags[flagName]
             if(flag.pos.roomName == roomName){
-                return flagName.split('_')[1]
+                res.push(flagName.split('_')[1])
             }
         }
     }
-    return null;
+    return res;
 }
 
 function runClaim(flag,highRoomName,lowRoomName){
@@ -107,7 +117,7 @@ function runHelpBuilder(flag,highRoomName,lowRoomName){
 }
 
 function  runHelpEnergy(flag,highRoomName,lowRoomName){
-    let creepName = 'help_'+lowRoomName+'_'+highRoomName
+    let creepName = 'help_e_'+lowRoomName+'_'+highRoomName
     let creep = Game.creeps[creepName]
     let highroom = Game.rooms[highRoomName]
     if(!highroom)return;
