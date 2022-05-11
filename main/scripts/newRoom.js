@@ -1,5 +1,6 @@
 let spawnCtrl = require("spawnCtrl")
 let labCtrl = require("labCtrl")
+let longmove = require("longmove")
 module.exports = {
     run(){
         for(let flagName in Game.flags){
@@ -106,7 +107,7 @@ function runHelpBuilder(flag,highRoomName,lowRoomName){
             labCtrl.boost(null,null,creep)
         }else{
             if(!creep.memory.role){
-                creep.moveTo(flag)
+                longmove.longMoveTo(creep,flag)
                 if(creep.pos.roomName == lowRoomName){
                     creep.memory.role = "builder"
                 }
@@ -139,10 +140,14 @@ function  runHelpEnergy(flag,highRoomName,lowRoomName){
                     creep.transfer(lowroom.storage,"energy")
                     creep.suicide()
                 }else{
-                    creep.moveTo(lowroom.storage)
+                    if(creep.room.name != lowRoomName)
+                        longmove.longMoveTo(creep,lowroom.storage)
+                    else{
+                        creep.moveTo(longmove.storage)
+                    }
                 }
             }else{//没能量
-                let target
+                let target= null
                 if(highroom.terminal.store.getUsedCapacity("energy") >= creep.store.getFreeCapacity("energy")){
                     target = highroom.terminal
                 }else if(highroom.storage.store.getUsedCapacity("energy") >= creep.store.getFreeCapacity("energy")){

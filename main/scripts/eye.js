@@ -1,5 +1,5 @@
 /**
- * 【功能】侦查房间，控制斥候移动和observe
+ * 【功能】侦查房间，控制斥候移动和observe，记录房间相关信息
  * 
  * 【结构】
  * 在Memory.eye.rooms = {}中存储各房的信息
@@ -12,7 +12,10 @@ module.exports = {
     init,
     spawnSpy,
     runCreep,
+    isfree,
+    watchRoom,
 }
+
 
 function init(){
     if(!Memory.eye)Memory.eye = {}
@@ -22,7 +25,7 @@ function init(){
 function spawnSpy(){
     Game.myrooms.forEach(room => {
         if(Game.time % 1019 == 0 && room.controller.level >= 3){
-            spawnCtrl.addSpawnList(room.name,[MOVE],"斥候_"+room.name+Game.time%1511)
+            spawnCtrl.addSpawnList(room.name,[MOVE],"斥候_"+room.name+'_'+Game.time%1511)
         }
     });
 }
@@ -31,7 +34,9 @@ function spawnSpy(){
 function runCreep(creep){
     // watchRoom(creep.room)
     // return;
-
+    if(creep.ticksToLive >= 1498){
+        creep.notifyWhenAttacked(false);
+    }
     let targetRoom = creep.memory.targetRoom
     if(creep.room.name == targetRoom){
         targetRoom = null
@@ -79,14 +84,45 @@ function runCreep(creep){
 }
 
 
-
+/**
+ * 
+ * @param {Room} room 
+ */
 function watchRoom(room){
-    // console.log('watch',room)
-    autoOutMiner.watchReverse(room)
+    if(!room)return
+    // console.log('watch',room.name)
+
+    let memory = Memory.eye.rooms[room.name]
+    if(!memory){memory = {}}
+
+    autoOutMiner.watchReverse(room) // 外矿
+
+    // 记录房间占有情况
+    // 如果是别人的房间
+    if(room.controller){
+        memory.controller = {}
+        if(room.controller.owner){
+            memory.controller.ownerusername = room.controller.owner.username
+            memory.controller.level = room.controller.level
+        }
+    }
 }
 
-function isborder(pos){
-    return pos.x <= 1 || pos.x >= 48 || pos.y <= 1 || pos.y >= 48
+/**
+ * 获取房间是否能够通行
+ * @param {*} roomName 
+ */
+function isfree(roomName){
+    let memory = Memory.eye.rooms[roomName]
+    if(!memory)return false // 未探索的房间
+    if(!memory.controller || !memory.controller.ownerusername)return true; //没有控制器的房间
+    if(memory.controller.ownerusername != Game.username){
+        return false // 别人的房间
+    }
+    if(memory.controller.ownerusername == Game.username){
+        return true // 我的房间
+    }
+    console.log('is free error')
 }
 
 //房间名称和坐标互相转化，其中设E0S0为(0,0),ES区域的坐标为正

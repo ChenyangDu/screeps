@@ -65,7 +65,7 @@ var runCreep = {
             creeps[role] = {}
         }
         if(!creeps[role].name){
-            let creepName = carryCtrl.borrowCreep(room,100)
+            let creepName = carryCtrl.borrowCreep(room,100,false)
             // console.log("borrow",creepName);
             creeps[role].name = creepName
         }
@@ -74,7 +74,11 @@ var runCreep = {
             if(creeps[role].usd)return null;// 在忙
 
             creeps[role].usd = true;
-            return Game.creeps[creeps[role].name]
+            if(Game.creeps[creeps[role].name]){
+                return Game.creeps[creeps[role].name]
+            }else{
+                creeps[role].name = null;
+            }
         }
         return null;
     },
@@ -283,7 +287,8 @@ function boost_fill(room){
             }
         }
         if(!ok){
-            for(let i = memory.labs.length-1;i>=0;i--){
+            let i = 2;
+            while(true){
                 let id = memory.labs[i];
                 if(!memory.boost_labs[id].type){
                     memory.boost_labs[id] = {
@@ -292,7 +297,13 @@ function boost_fill(room){
                     }
                     break;
                 }
+                i++;
+                i%=memory.labs.length;
+                if(i == 2)break;
             }
+            // for(let i = memory.labs.length-1;i>=0;i--){
+                
+            // }
         }
     }
     
@@ -319,7 +330,7 @@ function boost_fill(room){
         let type = memory.boost_labs[id].type
         
         new RoomVisual(room.name).text(type,lab.pos.x,lab.pos.y,{
-            font:0.5,color:'#dc0000'
+            font:0.4,color:'#dc0000'
         })
         if(lab.mineralType && type != lab.mineralType
              && lab.store[lab.mineralType] > 0){ // 有杂质
@@ -402,12 +413,14 @@ function initLab(room){
     let labs = room.find(FIND_STRUCTURES,{
         filter:o=>o.structureType == STRUCTURE_LAB
     })
-    if(labs.length != memory.labs.length || Game.time % 113 == 89){
+    if(labs.length != memory.labs.length || Game.time % 113 == 89 ){
+        let max_value = 0;
         labs.forEach(lab => {
             lab.value = 0;
             labs.forEach(l => {
                 if(lab.pos.inRangeTo(l,2)){
                     lab.value ++;
+                    max_value = Math.max(lab.value,max_value)
                 }
             });
         });
@@ -416,6 +429,24 @@ function initLab(room){
                 return b.value - a.value
             return a.id.localeCompare(b.id)
         });
+        if(room.storage){
+            for(let i=0;i<labs.length;i++){
+                let lab = labs[i];
+                if(i < 2){
+                    lab.pathLen = 0;
+                }else{
+                    lab.pathLen = lab.pos.findPathTo(room.storage,{ignoreCreeps:true}).length
+                }
+            }
+            labs.sort((a,b)=>{
+                if(a.pathLen != b.pathLen)
+                    return a.pathLen - b.pathLen
+                if(a.pos.x != b.pos.x)
+                    return b.pos.x-a.pos.x
+                return a.pos.y - b.pos.y;
+            })
+        }
+        
         for(var i = 0;i<labs.length;i++){
             labs[i] = labs[i].id;
         }
@@ -505,13 +536,13 @@ function do_reaction(room){
         }
         labs.push(Game.getObjectById(id))
     }
-    if(labs.length > 0){
-        let pos = labs[0].pos;
-        new RoomVisual(room.name).text(memory.product,pos.x,pos.y)
-    }
+    
     for(let i = 0 ;i < Math.min(2,labs.length);i++){
         let lab = labs[i]
         if(memory.boost_labs && memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
+        new RoomVisual(room.name).text(memory.materials[i],lab.pos.x,lab.pos.y,{
+            font:0.4
+        })
         if(lab.mineralType && lab.mineralType != memory.materials[i]){ // 如果原料炉装了杂质
             let creep = runCreep.getCreep(room,"reaction")
             if(creep){
@@ -534,7 +565,7 @@ function do_reaction(room){
             }
             continue;
         }
-        if(!lab.mineralType || lab.store[lab.mineralType] == 0){
+        if(!lab.mineralType || lab.store[lab.mineralType] < 5){
             memory.product = null;
             solve_product(room)
             let creep = runCreep.getCreep(room,"reaction")
@@ -580,6 +611,9 @@ function do_reaction(room){
     for(let i = 2;i<labs.length;i++){
         let lab = labs[i]
         if(memory.boost_labs && memory.boost_labs[lab.id] && memory.boost_labs[lab.id].type)continue;// 在boost
+        new RoomVisual(room.name).text(i,lab.pos.x,lab.pos.y,{
+            font:0.4
+        })
         if(lab.mineralType && lab.mineralType != memory.product){ // 如果产物炉装了杂质
             let creep = runCreep.getCreep(room,"reaction_clean")
             if(creep){
@@ -610,7 +644,7 @@ function do_reaction(room){
 }
 
 function getLimitMin(type){
-    return 800
+    return 2500
 }
 
 function getLimitMax(type){
@@ -618,7 +652,7 @@ function getLimitMax(type){
     if(FIGHT.indexOf(type) != -1){
         return 20000
     }
-    return 1500
+    return 3000
 }
 
 function getAllType(type,room,labs,creeps){

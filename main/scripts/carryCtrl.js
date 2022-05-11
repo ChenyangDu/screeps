@@ -95,7 +95,7 @@ function getAvgCapacity(roomName){
  * 
  * @param {Room} room 
  */
-function borrowCreep(room,ticks = 50){
+function borrowCreep(room,ticks = 50,busy=true){
     if(!room.memory.carryctrl)return null;
     let creeps = room.memory.carryctrl.carryers
     for(let creep of creeps){
@@ -109,8 +109,8 @@ function borrowCreep(room,ticks = 50){
         }
     }
     // 借不到
-    
-    room.memory.carryctrl.busyTicks ++;
+    if(busy)
+        room.memory.carryctrl.busyTicks ++;
     return null
 }
 
@@ -224,16 +224,18 @@ function spawn(room,isEmergency=false){
         }else{
             // 非紧急情况的carryer
             
-            // todo 如果有boost条件, 对比市场价格，判断boost是否合适
-            let terminal = room.terminal
-            if(terminal && terminal.store.getUsedCapacity('KH') >= body_len*2/3*30){
-                // console.log('boost carry spawn');
-                body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
-                    room.energyCapacityAvailable,body_len/2)
-                let labCtrl = require('labCtrl')
-                memory = labCtrl.boost_init_creep_memory({'KH':body.length/3*2},memory)
-            }
+            
         }
+    // todo 如果有boost条件, 对比市场价格，判断boost是否合适
+    let terminal = room.terminal
+    if(terminal && terminal.store.getUsedCapacity('KH') >= body_len*2/3*30){
+        // console.log('boost carry spawn');
+        body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
+            room.energyCapacityAvailable,body_len/2)
+        let labCtrl = require('labCtrl')
+        memory = labCtrl.boost_init_creep_memory({'KH':body.length/3*2},memory)
+    }
+
     if(spawnlist.length > 0){
         spawnlist[0].body = body
         return;

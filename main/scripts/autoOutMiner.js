@@ -7,6 +7,7 @@ var badPerson;
  * 【结构】占用黄棕色、黄橙色旗子、Memory.rooms.xxx.outminer
  *  todo 修路的时候别造carryer
  */
+
 module.exports = {
     run:function(){
         badPerson = false;
@@ -59,12 +60,15 @@ module.exports = {
         // 有主的就算了
         if(outroom.controller.level > 0)return;
         // todo 别人的外矿
-
+        if(outroom.controller.reservation &&
+            outroom.controller.reservation.username != Game.username){
+                return;
+            }
         let res = findSpawnRoom(outroom)
         if(res == null)return
         let spawnroom = res.room
         let dis = res.dis
-
+        
         // Memory初始化
         let memory = spawnroom.memory.outminer
         if(!memory){
@@ -434,8 +438,7 @@ function runReserve(reserveRoom){
     if(!creep){
         var tick = 0;
         if(room && room.controller && room.controller.reservation &&
-            Game.rooms[reserveRoom.spawn] && Game.rooms[reserveRoom.spawn].controller &&
-             room.controller.reservation.username == Game.rooms[reserveRoom.spawn].controller.owner.username){
+             room.controller.reservation.username == Game.username){
                 tick = room.controller.reservation.ticksToEnd
             }
         if(tick <= 2000 ){
@@ -563,6 +566,21 @@ function findSpawnRoom(outroom){
                 let res = myPathFinder(source.pos,{pos:target.pos,range:1})
                 if(!res.incomplete) dis += res.path.length
                 // todo判断房间是否已经有主了
+                let okrooms = {}
+                for(let pos of res.path){
+                    let roomName = pos.roomName
+                    if(okrooms[roomName] !== true){
+                        let r = Game.rooms[roomName]
+                        if(!r || !r.controller || 
+                            (r.controller.owner && r.controller.owner != Game.username)||
+                            (r.controller.reservation && r.controller.reservation.username != Game.username)){
+                                okrooms[roomName] = true;
+                        }else{
+                            dis += 3000
+                            break;
+                        }
+                    }
+                }
             })
             dis /= sources.length
             

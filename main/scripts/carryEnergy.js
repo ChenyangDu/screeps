@@ -383,6 +383,7 @@ function addMid(room,withdrawTargets,transferTargets,creeps){
     let midStruct = null
     if(room.storage)midStruct = room.storage
     
+    
     // 分别计算可抽取能量、可存放能量、运输中的能量
     let withdrawEnergy = _.sum(withdrawTargets,
         o=>{
@@ -414,8 +415,19 @@ function addMid(room,withdrawTargets,transferTargets,creeps){
         //     withdrawEnergy += midStruct.est_energy
         // }
         if(withdrawTargets.length == 0 && transferTargets.length > 0){
+            if(midStruct.store.getUsedCapacity("energy")==0){
+                if(room.terminal && room.terminal.store.getUsedCapacity("energy")>0){
+                    midStruct = room.terminal
+                }
+            }
             withdrawTargets.push(midStruct)
         }else if(transferTargets.length == 0){
+            if(midStruct.store.getFreeCapacity("energy")==0){
+                if(room.terminal && room.terminal.store.getFreeCapacity("energy")>0){
+                    midStruct = room.terminal
+                }
+            }
+
             transferTargets.push(midStruct)
         }
     }
