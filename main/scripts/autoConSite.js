@@ -10,11 +10,13 @@ module.exports = {
         for(let room of Game.myrooms){
             let roomName = room.name;
             var flag = Game.flags["Main_" + roomName]
-            if(flag){
-                if(room.controller.level == 1 || Game.time % 113 == 0){
-                    
-                    runFlag(flag)
+            if(room.controller.level == 1 || Game.time % 113 == 0){
+                if(flag){
+                    // runFlag(room,flag)
+                }else if(room.memory.structMap){
+                    runMemory(room)
                 }
+
             }
             if(Game.time % 9973 == 0){
                 removeRoad(room)
@@ -46,8 +48,63 @@ var exits = [
 ]
 var center = {"x":5,"y":9}
 
-function runFlag(flag){
-    room = Game.rooms[flag.pos.roomName]
+function runMemory(room){
+    let structMap = room.memory.structMap
+    let level = room.controller.level
+    let compeleted = true
+    for(let type in structMap){
+        let positions = Utils.decodePosArray(structMap[type])
+        for(let i=0;i<Math.min(CONTROLLER_STRUCTURES[type][level],positions.length);i++){
+            if(type == STRUCTURE_STORAGE){
+                if(room.energyCapacityAvailable < 1300){
+                    break;
+                }
+            }
+            if(type == STRUCTURE_TERMINAL){
+                if(room.energyCapacityAvailable < 2300 ||
+                     !room.storage || room.storage.store.getUsedCapacity("energy")<10000)
+                break;
+            }
+            if(type == STRUCTURE_LAB){
+                if(!(room.terminal && room.storage && 
+                    room.terminal.store.getUsedCapacity("energy") + room.storage.store.getUsedCapacity("energy")>=10000)){
+                        break;
+                    }
+            }
+            //console.log(position.x,position.y)
+            
+            let pos = new RoomPosition(positions[i].x,positions[i].y,room.name)
+            let structures = pos.lookFor(LOOK_STRUCTURES).filter((o)=>(o.structureType == type))
+            let sites = pos.lookFor(LOOK_CONSTRUCTION_SITES)
+            if(sites.length){
+                compeleted = false
+            }else{
+                if(!structures.length){
+                    if(pos.createConstructionSite(type) == OK){
+                        compeleted = false
+                        if(type == STRUCTURE_LAB)break;//lab一个一个造
+                    }
+                }
+            }
+        }
+    }
+    let center = room.terminal || room.storage || _.head(room.find(STRUCTURE_SPAWN))
+    if(center){
+        if(level >= 2 && sourceKeep(room,center) == false && compeleted){
+            compeleted = false
+        }
+        if(level >= 2 && level < 8 && compeleted){
+            controlKeep(room,center)
+        }
+        if(level >= 6){
+            extractor(room,center)
+        }
+    }
+    
+    
+}
+
+function runFlag(room,flag){
     if(!room){
         console.log('没得视野',flag)
         return;
@@ -103,27 +160,26 @@ function runFlag(flag){
         extractor(flag)
     }
 }
-function sourceKeep(flag){
+function sourceKeep(room,center){
     var sources = room.find(FIND_SOURCES)
     let compeleted = true;
     for(var source of sources){
         
-        let endPos = new RoomPosition(center.x + flag.pos.x,center.y + flag.pos.y,flag.pos.roomName)
-        let path = myPathFinder(source.pos, {pos:endPos}).path
+        if(!compeleted)continue;
+
+        let path = myPathFinder(source.pos, {pos:center}).path
         
         // 修路
-        if (flag.room.controller.level >= 2){
+        if (room.controller.level >= 2){
             for(var i=1;i<path.length;i++){
                 if(path[i].createConstructionSite(STRUCTURE_ROAD) == OK){
                     compeleted = false;
                 }
             }
         }
-        
-
         if(path.length > 0){
             // 放黄黄旗
-            path[0].createFlag(flag.pos.roomName + '_' + source.id[source.id.length-1],COLOR_YELLOW,COLOR_YELLOW)
+            path[0].createFlag(room.name + '_' + source.id[source.id.length-1],COLOR_YELLOW,COLOR_YELLOW)
             // 放link
             let linkPos = null;
             for(let x = -1;x<=1;x++)
@@ -135,7 +191,7 @@ function sourceKeep(flag){
                         // 不能是墙
                         if(pos.lookFor(LOOK_TERRAIN) == 'wall')continue;
                         // 最近的
-                        if(!linkPos || linkPos.getRangeTo(endPos) > pos.getRangeTo(endPos)){
+                        if(!linkPos || linkPos.getRangeTo(center) > pos.getRangeTo(center)){
                             linkPos = pos;
                         }
                     }
@@ -143,42 +199,99 @@ function sourceKeep(flag){
                 .find(o=>o.structureType == STRUCTURE_LINK) == undefined)
                 linkPos.createConstructionSite(STRUCTURE_LINK)
         }else{
-            console.log("寻路失败",flag.name)
+            console.log("寻路失败",room.name)
         }
     }
     return compeleted
 }
-
-function controlKeep(flag){
+/**
+ * 
+ * @param {Room} room 
+ * @param {Flag} flag 
+ * @param {Structure} center 
+ * @returns 
+ */
+function controlKeep(room,center){
     let controller = room.controller;
-    let startPos = new RoomPosition(center.x + flag.pos.x,center.y + flag.pos.y,flag.pos.roomName)
-    controller.range = 2;
-    let path = myPathFinder(startPos,controller).path
+
+    let containerPos = null; // 计算container的位置
+    {
+        let sources = room.find(FIND_MINERALS).concat(room.find(FIND_SOURCES))
+        let max_cnt = 0;// creep可以站的点
+        let prePoses = [] // 获取待选列表
+        let range2 = [
+            [0,2],[1,2],[2,2],[2,1],
+            [0,-2],[-1,-2],[-2,-2],[-2,-1],
+            [-2,0],[-2,1],[-2,2],[-1,2],
+            [2,0],[2,-1],[2,-2],[1,-2],
+        ]
+        let range1 = [
+            [0,1],[1,1],[0,-1],[-1,-1],
+            [1,0],[1,-1],[-1,0],[-1,1],
+        ]
+        for(let p of range2){
+            let pos = new RoomPosition(p[0]+controller.pos.x,p[1]+controller.pos.y,room.name)
+            let ok = true;
+            for(let source of sources){
+                if(pos.getRangeTo(source) <= 2){ // 不能靠近矿点
+                    ok = false;
+                    break;
+                }
+            }
+            if(!ok)continue;
+
+            let cnt = 0
+            range1.forEach(p1=>{
+                if(room.lookFor(LOOK_TERRAIN)[0] != TERRAIN_MASK_WALL){
+                    cnt++;
+                }
+            })
+            if(cnt > max_cnt){
+                max_cnt = cnt;
+                prePoses = [pos]
+            }else if(cnt == max_cnt){
+                prePoses.push(pos)
+            }
+        }
+        // 从待选中选一个最近的
+        containerPos = center.pos.findClosestByPath(prePoses)
+    }
+    if(!containerPos){
+        console.log("container pos error",room.name)
+        return;
+    }
+
+    let container = _.head(containerPos.lookFor(LOOK_STRUCTURES).filter(o=>o.structureType==STRUCTURE_CONTAINER))
+    if(container){
+        Memory['prototype'][room.name].tStorage = container.id
+    }
+
+    let path = myPathFinder(center.pos,containerPos).path
     for(var i=1;i<path.length-1;i++){
         path[i].createConstructionSite(STRUCTURE_ROAD)
     }
     
     if(path.length){
         // 靠近controller的container
-        let containerPos = path[path.length-1]
-        if(room.tStorage()){
-            containerPos = room.tStorage().pos
-        }else{
-            containerPos.createConstructionSite(STRUCTURE_CONTAINER)
-        }
+        // let containerPos = path[path.length-1]
+        // if(room.tStorage()){
+        //     containerPos = room.tStorage().pos
+        // }else{
+        //     containerPos.createConstructionSite(STRUCTURE_CONTAINER)
+        // }
         
-        if(controller.level >= 6){
-            for(let x = -1;x<=1;x++){
-                for(let y = -1;y<=1;y++){
-                    if(x || y){
-                        let pos = new RoomPosition(containerPos.x+x,containerPos.y+y,containerPos.roomName)
-                        if(pos.lookFor(LOOK_TERRAIN)[0] != 'wall'){
-                            pos.createConstructionSite(STRUCTURE_ROAD)
-                        }
-                    }
-                }
-            }
-        }
+        // if(controller.level >= 6){
+        //     for(let x = -1;x<=1;x++){
+        //         for(let y = -1;y<=1;y++){
+        //             if(x || y){
+        //                 let pos = new RoomPosition(containerPos.x+x,containerPos.y+y,containerPos.roomName)
+        //                 if(pos.lookFor(LOOK_TERRAIN)[0] != 'wall'){
+        //                     pos.createConstructionSite(STRUCTURE_ROAD)
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         if(path.length >= 2){
             let notUpgraderPos = path[path.length-2];
             room.memory.notUpgraderPos = notUpgraderPos;
@@ -186,12 +299,11 @@ function controlKeep(flag){
     }
 }
 
-function extractor(flag){
+function extractor(room,center){
     let miner = room.find(FIND_MINERALS)[0]
     miner.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
-    let startPos = new RoomPosition(center.x + flag.pos.x,center.y + flag.pos.y,flag.pos.roomName)
     miner.range = 1;
-    let path = myPathFinder(startPos,miner).path
+    let path = myPathFinder(center,miner).path
     for(var i=1;i<path.length-1;i++){
         path[i].createConstructionSite(STRUCTURE_ROAD)
     }

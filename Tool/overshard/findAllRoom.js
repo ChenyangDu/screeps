@@ -1,11 +1,8 @@
 //起点房间
-let roomArray=['E28N46','E25N43','E29N41','E29N38','E27N38','E14N41','E19N41','E1N29','E11N32','W5N31',"W15N32"]
-//填充shard
-for(let index in roomArray){
-    roomArray[index]="shard3_"+roomArray[index]
-}
+let roomArray=['shard3_E39N49','shard2_E41N35','shard1_E39N51']
+
 //终点
-let endPoint=['shard3_W20S10']
+let endPoint=['shard1_E36N41']
 let ansArray=[]
 for(let start of roomArray){
     for(let end of endPoint){
@@ -13,6 +10,7 @@ for(let start of roomArray){
         ans.startRoom=start
         ans.endRoom=end
         ansArray.push(ans)
+        console.log(ans)
     }
 }
 //结果

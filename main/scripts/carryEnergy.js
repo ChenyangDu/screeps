@@ -364,8 +364,10 @@ function findTransferTargets(room){
             struct.store.getFreeCapacity("energy") > 0
         }
     })
+    let hasBuilder = false
     let creeps = room.find(FIND_MY_CREEPS,{
         filter:(creep) =>{
+            if(creep.memory.role == 'builder')hasBuilder = true;
             return creep.memory && creep.memory.role &&
                 ((creep.memory.role == 'builder' && creep.memory.building == false) ||
                 ( creep.memory.role == 'upgrader' && creep.memory.upgrading == false)) 
@@ -373,7 +375,7 @@ function findTransferTargets(room){
     })
     transferTargets = transferTargets.concat(creeps)
 
-    if(tStorage && tStorage.store.getFreeCapacity("energy") > 400){
+    if(hasBuilder == false && tStorage && tStorage.store.getFreeCapacity("energy") > 400){
         transferTargets.push(tStorage)
     }
     return transferTargets;

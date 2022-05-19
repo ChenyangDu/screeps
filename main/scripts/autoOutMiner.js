@@ -406,8 +406,14 @@ function getAvaliableSpawn(roomName){
     return null;
 }
 
+/**
+ * 
+ * @param {Room} room 
+ * @returns 
+ */
 function getTransferTarget(room){
-    if(room.storage)return room.storage;
+    if(room.terminal&&room.terminal.store.getFreeCapacity("energy")>0)return room.terminal
+    if(room.storage&&room.storage.store.getFreeCapacity("energy")>0)return room.storage
     if(room.tStorage())return room.tStorage();
 }
 

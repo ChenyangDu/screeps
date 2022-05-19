@@ -46,7 +46,7 @@ var roleBuilder = {
                 }else if(creep.pos.inRangeTo(target,5)){
                     creep.moveTo(target,{range:3,ignoreCreeps:false})
                 }else{
-                    creep.moveTo(target,{range:3});
+                    creep.moveTo(target,{range:3,maxRooms:1});
                 }
             }else{
                 if(creep.memory.role == 'builder'){

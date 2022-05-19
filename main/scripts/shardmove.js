@@ -10,100 +10,119 @@ let path_data = {
         { shard: 'shard1', roomName: 'E36N41', x: 37, y: 6 },
     ]
 }
-
 let longmove = require("longmove")
+
+let shardMemory = require("shardMemory")
 
 module.exports = {
     start(creepName,shardName,roomName){
-        let data = JSON.parse(InterShardMemory.getLocal() || "{}");
+        let data = shardMemory.get(Game.shard.name)
         if(!data.overshard)data.overshard = {}
         let memory = data.overshard
         
         memory[creepName] = shardName+'_'+roomName
         
-        InterShardMemory.setLocal(JSON.stringify(data));
+        shardMemory.set(Game.shard.name,data);
     },
     stop(creepName){
-        let data = JSON.parse(InterShardMemory.getLocal() || "{}");
+        let data = shardMemory.get(Game.shard.name)
         if(!data.overshard)data.overshard = {}
         let memory = data.overshard
-        console.log('stop',creepName,memory[creepName],memory[creepName] != 'deleted')
+        
         if(memory[creepName] && memory[creepName] != 'deleted'){ // 说明是本shard要删掉
             delete memory[creepName]
         }else{
             memory[creepName] = 'deleted' // 提醒别的shard删掉这个
         }
-        console.log('stop',creepName,memory[creepName])
+        // console.log('stop',creepName,memory[creepName])
         
-        InterShardMemory.setLocal(JSON.stringify(data));
+        shardMemory.set(Game.shard.name,data);
     },
     run(){
         let shardnames = ['shard3','shard2','shard1','shard0']
-        let deletedname = null;
+        // 清除多余的deleted标记
+        if(Game.time % 5 == 0){
+            let localdata = shardMemory.get(Game.shard.name)
+            let memory = localdata.overshard || {}
+            let modefied = false
+            for(let creepName in memory){
+                if(memory[creepName] == 'deleted'){
+                    // console.log(creepName,'will deleted')
+                    let need = false;
+                    shardnames.forEach(shardname=>{
+                        if(shardname != Game.shard.name){
+                            let da = JSON.parse(InterShardMemory.getLocal() || "{}");
+                            if(da.overshard && da.overshard[creepName] && da.overshard[creepName]!='deleted'){
+                                need = true;
+                            }
+                        }
+                    })
+                    
+                    // console.log(creepName,need)
+                    if(!need){
+                        delete memory[creepName]
+                        modefied = true;
+                    }else{
+                        
+                    }
+                }
+            }
+            if(modefied)
+                shardMemory.set(Game.shard.name,localdata);
+        }
+        
+
+
+        
+        let deletednames = [];
         let data
         shardnames.forEach(shardname=>{
-            
-            if(shardname == Game.shard.name){
-                data = JSON.parse(InterShardMemory.getLocal() || "{}");
-            }else{
-                data = JSON.parse(InterShardMemory.getRemote(shardname) || "{}");
-            }
+            data = shardMemory.get(shardname)
             let memory = data.overshard || {}
             for(let creepName in memory){
                 // console.log(shardname,creepName,memory[creepName])
                 if(memory[creepName] != 'deleted'){
                     let paths = path_data[memory[creepName]]
                     let creep = Game.creeps[creepName]
+                    // if(creep){
+                    //     console.log(shardname,creepName,memory[creepName])
+                    // }
                     if(creep && paths){
                         // console.log('over shard ',creep)
                         let pos = this.shardmove(creep,paths)
                         if(pos){
                             
                             if(pos.roomName == creep.room.name){
-                                creep.moveTo(pos)
+                                creep.moveTo(pos,{ignoreCreeps:false})
                             }else{
                                 longmove.longMoveTo(creep,pos)
                             }
                         }
                     }
                 }else{
-                    if(shardname != Game.shard.name)
-                        deletedname = creepName
+                    
+                    // console.log('delete ',creepName,memory[creepName],shardname,shardname != Game.shard.name)
+                    if(shardname != Game.shard.name){//别的shard说这个要删掉
+                        deletednames.push(creepName)
+                        // console.log('delete ',creepName)
+                    }else{ // 自己说要删掉
+                        // delete memory[creepName]
+                        // shardMemory.set(Game.shard.name,data);
+                    }
                 }
             }
         })
 
-        if(deletedname){
-            data = JSON.parse(InterShardMemory.getLocal() || "{}");
+        data = shardMemory.get(Game.shard.name)
+        deletednames.forEach(deletedname=>{
+            // console.log('delete',deletedname)
             let memory = data.overshard || {}
             delete memory[deletedname]
-            InterShardMemory.setLocal(JSON.stringify(data));
-        }
+            
+        })
+        shardMemory.set(Game.shard.name,data);
 
-        // 清除多余的deleted标记
-        let localdata = JSON.parse(InterShardMemory.getLocal() || "{}");
-        let memory = localdata.overshard || {}
-        let modefied = false
-        for(let creepName in memory){
-            if(memory[creepName] == 'deleted'){
-                let need = false;
-                shardnames.forEach(shardname=>{
-                    if(shardname != Game.shard.name){
-                        let da = JSON.parse(InterShardMemory.getLocal() || "{}");
-                        if(da.overshard && da.overshard[creepName] && da.overshard[creepName]!='deleted'){
-                            need = true;
-                        }
-                    }
-                })
-                
-                if(!need){
-                    delete memory[creepName]
-                    modefied = true;
-                }
-            }
-        }
-        if(modefied)
-            InterShardMemory.setLocal(JSON.stringify(localdata));
+        
         
     },
     shardmove(creep,paths){

@@ -66,6 +66,7 @@ function init(){
                 carryers.splice(i,1)
                 i--;
             }else{
+                
                 let creep = Game.creeps[carry.name]
                 if(creep.memory.boosted === false){
                     labCtrl.boost(null,null,creep)
@@ -136,16 +137,30 @@ function end(){
     })
 }
 
+/**
+ * 
+ * @param {Room} room 
+ * @returns 
+ */
 function needCarryer(room){
     if(!room.memory.carryctrl)return;
     let creeps = room.memory.carryctrl.carryers
     creeps.forEach(creep => {
-        if(creep.used == false){
-            if(room.storage){
+        if(!creep.used){
+            let target = null
+            if(room.storage)target = room.storage
+            else{
+                let spawns = room.find(FIND_STRUCTURES,{filter:o=>{
+                    return o.structureType == STRUCTURE_SPAWN
+                }})
+                if(spawns.length)target = spawns[0]
+            }
+            
+            if(target){
                 let c = Game.creeps[creep.name]
                 // 闲置的creep
-                if(c && c.pos.getRangeTo(room.storage) > 5){
-                    c.moveTo(room.storage,{range:5,ignoreCreeps:false})
+                if(c && c.pos.getRangeTo(target) > 5){
+                    c.moveTo(target,{range:5,ignoreCreeps:false})
                 }
             }
         }

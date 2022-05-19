@@ -1,42 +1,12 @@
 let spawnCtrl = require("spawnCtrl")
 let labCtrl = require("labCtrl")
 let longmove = require("longmove")
+let shardmove = require("shardmove")
 module.exports = {
     run(){
-        for(let flagName in Game.flags){
-            if(flagName.startsWith("Main_")){
-                let flag = Game.flags[flagName]
-                let roomName = flag.pos.roomName
-                
-                if(!flag.room || !flag.room.controller.my){
-                    let helpRooms = getHelpRooms(roomName)
-                    if(helpRooms.length){
-                        runClaim(flag,helpRooms[0],roomName)
-                        helpRooms.forEach(helpRoom=>{
-                            runHelpBuilder(flag,helpRoom,roomName)
-                        })
-                    }
-                }else if(flag.room && flag.room.controller.my && flag.room.controller.level <= 2
-                    && flag.room.energyCapacityAvailable < 550){
-                    
-                    let helpRooms = getHelpRooms(roomName)
-                    if(helpRooms.length){
-                        helpRooms.forEach(helpRoom=>{
-                            runHelpBuilder(flag,helpRoom,roomName)
-                        })
-                    }
-                }else if(flag.room && flag.room.controller.my && flag.room.storage && !flag.room.terminal){
-                    let helpRooms = getHelpRooms(roomName)
-                    if(helpRooms.length){
-                        helpRooms.forEach(helpRoom=>{
-                            if(Game.rooms[helpRoom] && Game.rooms[helpRoom].controller.level >=6){
-                                runHelpEnergy(flag,helpRoom,roomName)
-                            }
-                        })
-                    }
-                }
-            }
-        }
+        runHelpEnergy('shard3','E39N49','shard1','E36N41',200,20)
+        runHelpEnergy('shard2','E41N35','shard1','E36N41',200,15)
+        runHelpEnergy('shard1','E39N51','shard1','E36N41',500,10)
     }
 }
 
@@ -81,86 +51,162 @@ function runClaim(flag,highRoomName,lowRoomName){
     }
 }
 
-function runHelpBuilder(flag,highRoomName,lowRoomName){
-    let creepName = 'help_'+lowRoomName+'_'+highRoomName
-    let creep = Game.creeps[creepName]
-    if(!creep){
-        // todo 如果有boost条件, 对比市场价格，判断boost是否合适
-        let terminal = Game.rooms[highRoomName].terminal
-        let body = spawnCtrl.getbody([],[WORK,CARRY,MOVE,],Game.rooms[highRoomName].energyCapacityAvailable)
-        let memory = {}
-        if(terminal && terminal.store.getUsedCapacity('LH')>=30){
-            memory = labCtrl.boost_init_creep_memory({'LH':body.length/3},memory)
+function runHelpBuilder(highRoomShard,highRoomName,lowRoomShard,lowRoomName,){
+    // let highRoomName = 'E39N49'
+    if(Game.shard.name == highRoomShard){
+        if(Game.time % 750 == 0){
+            let terminal = Game.rooms[highRoomName].terminal
+            let body = spawnCtrl.getbody([],[WORK,CARRY,MOVE,],Game.rooms[highRoomName].energyCapacityAvailable)
+            let memory = {}
+            if(terminal && terminal.store.getUsedCapacity('LH')>=30){
+                memory = labCtrl.boost_init_creep_memory({'LH':body.length/3},memory)
+            }
+            if(terminal && terminal.store.getUsedCapacity('ZO')>=30){
+                memory = labCtrl.boost_init_creep_memory({'ZO':body.length/3},memory)
+            }
+            console.log('add help ','help_'+highRoomName+(Game.time%4500)/750)
+        //    spawnCtrl.addSpawnList(
+            //    highRoomName,
+          //      body,
+             //   'help_'+highRoomName+(Game.time%3000)/750,
+             //   {memory}
+           // )
         }
-        if(terminal && terminal.store.getUsedCapacity('ZO')>=30){
-            memory = labCtrl.boost_init_creep_memory({'ZO':body.length/3},memory)
-        }
-        spawnCtrl.addSpawnList(
-            highRoomName,
-            body,
-            creepName,
-            {memory}
-        )
-    }else{
-        if(creep.memory.boosted === false){
-            // console.log("want to boost")
-            labCtrl.boost(null,null,creep)
-        }else{
-            if(!creep.memory.role){
-                longmove.longMoveTo(creep,flag)
-                if(creep.pos.roomName == lowRoomName){
-                    creep.memory.role = "builder"
+    }
+    for(let i = 0;i<6;i++){
+        let creepName = 'help_e_'+highRoomName+i;
+        let creep = Game.creeps[creepName]
+        if(creep){
+            if(Game.shard.name == highRoomShard && creep.room.name == highRoomName){
+                if(creep.memory.boosted === false){
+                    // console.log("want to boost")
+                    labCtrl.boost(null,null,creep)
+                }
+                if(creep.memory.boosted){
+                    shardmove.start(creep.name,lowRoomShard,lowRoomName)
+                }
+            }
+            if(Game.shard.name == lowRoomShard && creep.room.name == lowRoomName){
+                // shardmove.stop(creep.name)
+                if(!creep.memory.overshard){
+                    creep.memory.overshard = true;
+                    shardmove.stop(creep.name)
+                }
+                if(!creep.memory.role){
+                    creep.moveTo(new RoomPosition(25,25,lowRoomName))
+                    if(creep.pos.roomName == lowRoomName){
+                        creep.memory.role = "builder"
+                    }
                 }
             }
         }
-        
     }
 }
 
-function  runHelpEnergy(flag,highRoomName,lowRoomName){
-    let creepName = 'help_e_'+lowRoomName+'_'+highRoomName
-    let creep = Game.creeps[creepName]
-    let highroom = Game.rooms[highRoomName]
-    if(!highroom)return;
-
-    if(!creep){
-        let body = spawnCtrl.getbody([],[CARRY,MOVE,],highroom.energyCapacityAvailable)
-        spawnCtrl.addSpawnList(
-            highRoomName,
-            body,
-            creepName,
-        )
-    }else{
-        creep.say("help")
-        let lowroom = Game.rooms[lowRoomName]
-        if(!lowroom)return;
-        if(lowroom && lowroom.storage){
-            if(creep.store.getUsedCapacity()){//有能量
-                if(creep.pos.isNearTo(lowroom.storage)){
-                    creep.transfer(lowroom.storage,"energy")
-                    creep.suicide()
+function  runHelpEnergy(highRoomShard,highRoomName,lowRoomShard,lowRoomName,ticks=750,nums=10){
+    let creepName = 'help_e_'+highRoomShard+'_'+highRoomName+'_'
+    if(Game.shard.name == highRoomShard){
+        if(Game.time % ticks == 0){
+            if(Game.rooms[highRoomName]){
+                let body = spawnCtrl.getbody([],[CARRY,MOVE,],Game.rooms[highRoomName].energyCapacityAvailable)
+                spawnCtrl.addSpawnList(
+                    highRoomName,
+                    body,
+                    creepName+(Game.time%(ticks*nums))/ticks,
+                )
+            }else{
+                console.log(highRoomShard,highRoomName,'runHelpEnergy error')
+            }
+        }
+    }
+    for(let i = 0;i<nums;i++){
+        let creep = Game.creeps[creepName+i]
+        if(creep){
+            // creep.say("help")
+            // 如果在出生房间
+            
+            if( Game.shard.name == highRoomShard && creep.room.name == highRoomName){
+                if(creep.store.getFreeCapacity() > 0){
+                    let target = null
+                    if(creep.room.terminal && creep.room.terminal.store.getUsedCapacity("energy")>0){
+                        target = creep.room.terminal
+                    }else if(creep.room.storage && creep.room.storage.store.getUsedCapacity("energy")>0){
+                        target = creep.room.storage
+                    }
+                    if(target){
+                        if(creep.pos.isNearTo(target)){
+                            creep.withdraw(target,"energy")
+                        }else{
+                            creep.moveTo(target)
+                        }
+                    }
+                    shardmove.stop(creep.name)
                 }else{
-                    if(creep.room.name != lowRoomName)
-                        longmove.longMoveTo(creep,lowroom.storage)
-                    else{
-                        creep.moveTo(longmove.storage)
-                    }
+                    // 启动星门
+                    shardmove.start(creep.name,lowRoomShard,lowRoomName)
                 }
-            }else{//没能量
-                let target= null
-                if(highroom.terminal.store.getUsedCapacity("energy") >= creep.store.getFreeCapacity("energy")){
-                    target = highroom.terminal
-                }else if(highroom.storage.store.getUsedCapacity("energy") >= creep.store.getFreeCapacity("energy")){
-                    target = highroom.storage
-                }
+            }
+            
+            if(Game.shard.name == lowRoomShard && creep.room.name == lowRoomName){
+                // 停止星门
+                shardmove.stop(creep.name)
+                // if(!creep.memory.overshard){
+                //     creep.memory.overshard = true;
+                //     shardmove.stop(creep.name)
+                // }
+                // if(!creep.memory.role){
+                //     creep.moveTo(new RoomPosition(25,25,lowRoomName))
+                //     if(creep.pos.roomName == lowRoomName){
+                //         creep.memory.role = "carryer"
+                //     }
+                // }
+                
+                let target = null
+                if(creep.room.tStorage())target = creep.room.tStorage()
+
                 if(target){
-                    if(creep.pos.isNearTo(target)){
-                        creep.withdraw(target,"energy")
-                        creep.moveTo(lowroom.storage)
+                    if(target.store.getFreeCapacity()>=creep.store.getUsedCapacity()){
+                        if(creep.pos.isNearTo(target)){
+                            creep.transfer(target,"energy")
+                        }else{
+                            creep.moveTo(target)
+                        }
                     }else{
-                        creep.moveTo(target)
+                        creep.moveTo(target,
+                            {range:5,ignoreCreeps:creep.pos.getRangeTo(target)>7})
                     }
                 }
+                
+                
+                if(creep.store.getUsedCapacity("energy") == 0){
+                    creep.suicide();
+                }
+                // shardmove.stop(creep.name)
+                // if(!creep.memory.overshard){
+                //     creep.memory.overshard = true;
+                //     shardmove.stop(creep.name)
+                // }
+                // let target = null
+                
+                // if(creep.room.terminal)target = creep.room.terminal
+                // else if(creep.room.storage)target = creep.room.storage
+                // else if(creep.room.tStorage())target = creep.room.tStorage()
+                // else {
+                //     let spawns = creep.room.find(FIND_STRUCTURES,{
+                //         filter:o=>o.structureType == STRUCTURE_SPAWN
+                //     })
+                //     if(spawns.length){
+                //         target = spawns[0]
+                //     }
+                // }
+                // if(target){
+                //     if(creep.pos.isNearTo(target)){
+                //         creep.transfer(target,"energy")
+                //         // creep.suicide();
+                //     }else{
+                //         creep.moveTo(target)
+                //     }
+                // }
             }
         }
     }

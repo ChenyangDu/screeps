@@ -67,7 +67,7 @@ var roleUpgrader = {
                     }
                     if(poslists.length){
                         let targetPos = _.min(poslists,(o)=>(o.getRangeTo(controller)))
-                        creep.moveTo(targetPos,{ignoreCreeps:creep.pos.getRangeTo(targetPos) > 3})
+                        creep.moveTo(targetPos,{maxRooms:1,ignoreCreeps:creep.pos.getRangeTo(targetPos) > 3})
                     }
                 }
                 if(creep.ticksToLive % 17 == 0){
@@ -90,7 +90,7 @@ var roleUpgrader = {
                 }
             }else{
                 if(creep.pos.getRangeTo(controller.pos) > 5){
-                    creep.moveTo(controller,{range:RANGE})
+                    creep.moveTo(controller,{range:RANGE,maxRooms:1})
                 }else if (creep.pos.getRangeTo(controller.pos) > RANGE){
                     creep.moveTo(controller,{range:RANGE,ignoreCreeps:false})
                 }

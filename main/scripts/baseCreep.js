@@ -288,7 +288,7 @@ function needUpgrader(room){
             if(creep.ticksToLive > max_life)
                 max_life = creep.ticksToLive
         })
-        if(max_life >= 1350){
+        if(max_life >= 1400){
             needToSpawn = false
         }
         /*
@@ -313,33 +313,40 @@ function needUpgrader(room){
 }
 
 function spawnUpgraderReal(room){
-    let energyAvai = room.energyCapacityAvailable
+    let energyCap = room.energyCapacityAvailable
+    let upgraders = getCnt(room.name,"upgrader")+getCnt(room.name,"builder");
     let body = []
-    if(energyAvai <= 300)
+    if(energyCap <= 300)
         body = [WORK,WORK,CARRY,MOVE]
     else if(room.controller.level <= 7) {
-        var baseBody = [WORK,CARRY,MOVE,],baseCost = 200
-        body = [WORK,CARRY,MOVE,],cost = 200
-        while(cost + baseCost <= energyAvai && body.length + baseBody.length <= 50){
+        let baseBody,baseCost,cost = 0
+        body = []
+        if(upgraders >= 6){
+            baseBody = [WORK,WORK,WORK,CARRY,MOVE,MOVE,],baseCost = 450
+            while(cost + baseCost <= energyCap && body.length + baseBody.length <= 50){
+                cost += baseCost
+                body = body.concat(baseBody)
+            }
+        }
+        baseBody = [WORK,CARRY,MOVE,],baseCost = 200
+
+        while(cost + baseCost <= energyCap && body.length + baseBody.length <= 50){
             cost += baseCost
             body = body.concat(baseBody)
-        }/*
-        baseBody = [WORK,WORK,MOVE,],baseCost = 250
-        while(cost + baseCost <= energyAvai && body.length + baseBody.length <= 50){
-            cost += baseCost
-            body = body.concat(baseBody)
-        }*/
+        }
+        
         baseBody = [WORK,MOVE,],baseCost = 150
-        while(cost + baseCost <= energyAvai && body.length + baseBody.length <= 50){
+        while(cost + baseCost <= energyCap && body.length + baseBody.length <= 50){
             cost += baseCost
             body = body.concat(baseBody)
         }
     }else if(room.controller.level == 8){
-        body = spawnCtrl.getbody([],[WORK,CARRY,MOVE,],room.energyCapacityAvailable,45)
+        body = spawnCtrl.getbody([],[WORK,CARRY,MOVE,],energyCap,45)
     }
     
     let memory = {role:'upgrader',upgrading : false}
     
+    // console.log(room.name,body)
     spawnCtrl.addSpawnList(room.name,body,
         'upgrader_'+room.name+'_'+Game.time,
         {memory})

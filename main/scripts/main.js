@@ -11,14 +11,24 @@ var labCtrl = require('labCtrl')
 let miner = require('miner')
 let newRoom = require('newRoom')
 let shardmove = require('shardmove')
+let shardMemory = require("shardMemory")
 
 require('prototype.Creep.move')
 require('prototype.Room')
+require('RoomVisual')
 
-// module.exports.loop=require("调用栈分析器").warpLoop(main); 
+require("./class_RoomArray")
+require("./algo_wasm_PriorityQueue")
+require("./algo_algorithm")
+require("./manager_autoPlanner")
+require("./manager_planner")
+require("./helper_visual")
+require("./utils")
+
 module.exports.loop=main; 
+let roomStructsData = null;
+
 function main() {
-    
     Game.myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my
     && x.controller.level > 0);
     if(Game.myrooms.length)
@@ -35,6 +45,8 @@ function main() {
     baseCreep.init();
     labCtrl.init()
     carryCtrl.init();
+    if(Game.shard.name != 'LAPTOP-46VTIAM7')
+        shardMemory.init();
 
 
     // 生产并运行harvetser builder upgrader
@@ -62,7 +74,12 @@ function main() {
     labCtrl.end() // 所有boost操作要在这之前
 
     carryCtrl.end();
-    shardmove.run();
+    
+    if(Game.shard.name != 'LAPTOP-46VTIAM7'){
+        shardmove.run();
+        shardMemory.end();
+    }
+    
 
     autoConSite.test();
     
@@ -73,31 +90,41 @@ function main() {
     }
     if(Game.shard.name == 'LAPTOP-46VTIAM7'){
         let ob = Game.getObjectById('67639afd3dae49d')
-        ob.observeRoom('W9N1')
-        // eye.watchRoom(Game.rooms['W9N1'])
+        let roomName = 'W1N3'
 
-        // let from = new RoomPosition(31,43,"W8N1")
-        // let to = new RoomPosition(17,32,'W9N2')
-        // let ret = PathFinder.search(from,to,{
-        //     roomCallback(roomName){
-        //         console.log("search ",roomName)
-        //         if(eye.isfree(roomName) === false){
-        //             return false
-        //         }
-        //     },
-        //     maxOps:20000
-        // })
-        // console.log(ret.path.length,ret.path)
-        // let code = encodePath(ret.path)
-        // let path = decodePath(code)
-        // console.log(path)
-        
-        let creep = Game.creeps.pathtest
-        if(creep){
-            // require("longmove").longMoveTo(creep,new RoomPosition(17,32,'W9N2'))
-            // creep.move(1)
-        }
+        ob.observeRoom(roomName)
+        if(Game.rooms[roomName]){
+            let room = Game.rooms[roomName]
+            let controller = room.controller
+            let miner = room.find(FIND_MINERALS)
+            let sources = room.find(FIND_SOURCES)
+
+            let p = Game.flags.p; // 触发器
+            let pa = Game.flags.pa;
+            let pb = Game.flags.pb;
+            let pc = Game.flags.pc;
+            let pm = Game.flags.pm;
+
+            Game.flags.storagePos // 代表自定义是 storage 的位置
+
+            ManagerAutoPlanner.exec()
+
+            // if(p) {
+            //     roomStructsData = ManagerPlanner.computeManor(p.pos.roomName,[pc,pm,pa,pb])
+            //     Game.flags.p.remove()
+            // }
+            // if(roomStructsData){
+            //     //这个有点消耗cpu 不看的时候记得关
+                
+            //     HelperVisual.showRoomStructures(roomStructsData.roomName,roomStructsData.structMap)
+            // }
+
+            // require("63超级扣位置自动布局_改良版").run()
+            // require("63超级扣位置自动布局 单文件傻瓜版").run(roomName,controller,miner[0],sources[0],sources.length>1?sources[1]:null)
+        }        
     }
+    // new RoomVisual('W5N1').test()
+    
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }
 
@@ -141,7 +168,7 @@ function tmp(){
             if(terminal && terminal.store.getUsedCapacity('ZO')>=30){
                 memory = labCtrl.boost_init_creep_memory({'ZO':body.length/3},memory)
             }
-            console.log('add help ','help_'+highRoomName+(Game.time%4500)/750)
+            
         //    spawnCtrl.addSpawnList(
             //    highRoomName,
           //      body,

@@ -30,6 +30,11 @@ module.exports = {
             }else if(creep.moveByPath(decodePath(memory.path)) == ERR_NOT_FOUND){
                 creep.moveByPath(search(creep,target))
             }
+            
+            if(creep.ticksToLive % 5 == 0 && creep.room.find(FIND_HOSTILE_CREEPS).length>0){
+                
+                creep.moveByPath(search(creep,target))
+            }
         }
     }
 }
@@ -78,6 +83,10 @@ function search(creep,target){
                     // 不能穿过无法行走的建筑
                     costs.set(struct.pos.x, struct.pos.y, 0xff);
                 }
+            });
+            // 躲避房间中的 creep
+            room.find(FIND_HOSTILE_CREEPS).forEach(function(creep) {
+                costs.set(creep.pos.x, creep.pos.y, 0xff);
             });
             return costs
         },
