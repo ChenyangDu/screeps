@@ -15,20 +15,11 @@ let shardMemory = require("shardMemory")
 
 require('prototype.Creep.move')
 require('prototype.Room')
-require('RoomVisual')
 
-require("./class_RoomArray")
-require("./algo_wasm_PriorityQueue")
-require("./algo_algorithm")
-require("./manager_autoPlanner")
-require("./manager_planner")
-require("./helper_visual")
-require("./utils")
-
+// module.exports.loop=require("调用栈分析器").warpLoop(main); 
 module.exports.loop=main; 
-let roomStructsData = null;
-
 function main() {
+    
     Game.myrooms = _.filter(Game.rooms, (x) => x.controller && x.controller.my
     && x.controller.level > 0);
     if(Game.myrooms.length)
@@ -74,12 +65,10 @@ function main() {
     labCtrl.end() // 所有boost操作要在这之前
 
     carryCtrl.end();
-    
     if(Game.shard.name != 'LAPTOP-46VTIAM7'){
         shardmove.run();
         shardMemory.end();
     }
-    
 
     autoConSite.test();
     
@@ -89,42 +78,24 @@ function main() {
         Game.cpu.generatePixel();
     }
     if(Game.shard.name == 'LAPTOP-46VTIAM7'){
+        require('./autoPlan').run()
         let ob = Game.getObjectById('67639afd3dae49d')
         let roomName = 'W1N3'
-
         ob.observeRoom(roomName)
         if(Game.rooms[roomName]){
             let room = Game.rooms[roomName]
             let controller = room.controller
             let miner = room.find(FIND_MINERALS)
             let sources = room.find(FIND_SOURCES)
-
-            let p = Game.flags.p; // 触发器
-            let pa = Game.flags.pa;
-            let pb = Game.flags.pb;
-            let pc = Game.flags.pc;
-            let pm = Game.flags.pm;
-
-            Game.flags.storagePos // 代表自定义是 storage 的位置
-
-            ManagerAutoPlanner.exec()
-
-            // if(p) {
-            //     roomStructsData = ManagerPlanner.computeManor(p.pos.roomName,[pc,pm,pa,pb])
-            //     Game.flags.p.remove()
-            // }
-            // if(roomStructsData){
-            //     //这个有点消耗cpu 不看的时候记得关
-                
-            //     HelperVisual.showRoomStructures(roomStructsData.roomName,roomStructsData.structMap)
-            // }
-
-            // require("63超级扣位置自动布局_改良版").run()
-            // require("63超级扣位置自动布局 单文件傻瓜版").run(roomName,controller,miner[0],sources[0],sources.length>1?sources[1]:null)
-        }        
+            
+            require("./63超级扣位置自动布局_改良版").run(roomName,controller,miner[0],sources[0],sources.length>1?sources[1]:null)
+            let creep = Game.creeps.pathtest
+            if(creep){
+                // require("longmove").longMoveTo(creep,new RoomPosition(17,32,'W9N2'))
+                // creep.move(1)
+            }
+        }
     }
-    // new RoomVisual('W5N1').test()
-    
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }
 
@@ -221,6 +192,9 @@ function clear(){
     for(let name in Memory.rooms){
         if(Object.keys(Memory.rooms[name]).length == 0){
             delete Memory.rooms[name]
+        }
+        if(Game.time % 100 == 0 && Memory.rooms[name].structMap && !Game.rooms[name]){
+            delete Memory.rooms[name].structMap
         }
     }
 }

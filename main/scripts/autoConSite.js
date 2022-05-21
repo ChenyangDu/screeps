@@ -100,8 +100,6 @@ function runMemory(room){
             extractor(room,center)
         }
     }
-    
-    
 }
 
 function runFlag(room,flag){
@@ -150,14 +148,17 @@ function runFlag(room,flag){
         }
     }
     
-    if(level >= 2 && sourceKeep(flag) == false && compeleted){
-        compeleted = false
-    }
-    if(level >= 2 && level < 8 && compeleted){
-        controlKeep(flag)
-    }
-    if(level >= 6){
-        extractor(flag)
+    let center = room.terminal || room.storage || _.head(room.find(STRUCTURE_SPAWN))
+    if(center){
+        if(level >= 2 && sourceKeep(room,center) == false && compeleted){
+            compeleted = false
+        }
+        if(level >= 2 && level < 8 && compeleted){
+            controlKeep(room,center)
+        }
+        if(level >= 6){
+            extractor(room,center)
+        }
     }
 }
 function sourceKeep(room,center){

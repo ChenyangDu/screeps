@@ -80,8 +80,6 @@
  *  本人有改动！
  */
 
-
-
  global.structuresShape= {
     "spawn": "◎",
     "extension": "ⓔ",
@@ -442,7 +440,7 @@ class RoomArray {
 }
 
 
-global.minPlaneCnt = 140 // 内部布局最小面积！ 试过了，140是 基本上最低配置了
+global.minPlaneCnt = 130 // 内部布局最小面积！ 试过了，140是 基本上最低配置了
 
 let visited = new RoomArray()
 let roomWalkable = new RoomArray()
@@ -698,13 +696,39 @@ let pro={
             roomObjectCache.set(finalX,finalY,struct)
             return [finalX,finalY]
         }
+        let getControllerContainerPos=function(x,y,struct){
+            let max_cnt = 0 // 周围的空地数量
+            let finalX = 0
+            let finalY = 0
+            let controllerPos = new RoomPosition(x,y,roomName)
+            roomPutAble.forNear((_x,_y,val)=>{
+                let pos = new RoomPosition(_x,_y,roomName)
+                if(val&&!roomObjectCache.get(_x,_y) && pos.getRangeTo(controllerPos) == 2){
+                    let cnt = 0
+                    roomPutAble.forNear((x,y,val)=>{
+                        if(val&&!roomObjectCache.get(x,y)){
+                            cnt++
+                        }
+                    },pos.x,pos.y)
+                    if(cnt > max_cnt){
+                        max_cnt = cnt
+                        finalX = _x
+                        finalY = _y
+                    }
+                }
+            },x,y,2)
+            
+            roomObjectCache.set(finalX,finalY,struct)
+            return [finalX,finalY]
+        }
         for(let i=0;i<objects.length;i++){
             let pos = objects[i]
             //container 位置
-            let p = getObjectPos(pos.x,pos.y,"container")
+            let p = i?getObjectPos(pos.x,pos.y,"container"):
+                getControllerContainerPos(pos.x,pos.y,"container")
 
             // link 位置
-            if(i!=1){
+            if(i>1){
                 let linkPos = getObjectPos(p[0],p[1],"link")
                 roomObjectCache.link = roomObjectCache.link || []
                 roomObjectCache.link.push(linkPos) // link controller 然后是  source
@@ -1450,46 +1474,46 @@ let pro={
 
         //#region 新的连接外矿方式
 
-        let costs = new PathFinder.CostMatrix;
-        let terrain = new Room.Terrain(roomName);
-        for(let i=0;i<50;i++){
-            for(let j=0;j<50;j++){
-                let te = terrain.get(i,j)
-                costs.set(i,j,te==TERRAIN_MASK_WALL?255:(te==TERRAIN_MASK_SWAMP?4:2))
-            }
-        }
-        for(let struct of OBSTACLE_OBJECT_TYPES){
-            if(structMap[struct]){
-                structMap[struct].forEach(e=>{
-                    costs.set(e[0],e[1],255)
-                })
-            }
-        }
-        structMap["road"].forEach(e=>{
-            costs.set(e[0],e[1],1)
-        })
-        for(let i=0;i<50;i++){
-            for(let j=0;j<50;j++){
-                // new RoomVisual(roomName).text(costs.get(i,j),new RoomPosition(i,j,roomName))
-            }
-        }
-        structMap["container"].forEach(e=>{
-            let ret = PathFinder.search(
-                new RoomPosition(centerX,centerY,roomName),
-                {pos:new RoomPosition(e[0],e[1],roomName),range:1}, 
-                {
-                    roomCallback:()=>{return costs},
-                    maxRooms:1
-                }
-            )
-            ret.path.forEach(pos=>{
-                if(costs.get(pos.x,pos.y) != 1){
-                    structMap['road'].push([pos.x,pos.y])
-                    costs.set(pos.x,pos.y,1)
-                }
-            })
+        // let costs = new PathFinder.CostMatrix;
+        // let terrain = new Room.Terrain(roomName);
+        // for(let i=0;i<50;i++){
+        //     for(let j=0;j<50;j++){
+        //         let te = terrain.get(i,j)
+        //         costs.set(i,j,te==TERRAIN_MASK_WALL?255:(te==TERRAIN_MASK_SWAMP?4:2))
+        //     }
+        // }
+        // for(let struct of OBSTACLE_OBJECT_TYPES){
+        //     if(structMap[struct]){
+        //         structMap[struct].forEach(e=>{
+        //             costs.set(e[0],e[1],255)
+        //         })
+        //     }
+        // }
+        // structMap["road"].forEach(e=>{
+        //     costs.set(e[0],e[1],1)
+        // })
+        // for(let i=0;i<50;i++){
+        //     for(let j=0;j<50;j++){
+        //         // new RoomVisual(roomName).text(costs.get(i,j),new RoomPosition(i,j,roomName))
+        //     }
+        // }
+        // structMap["container"].forEach(e=>{
+        //     let ret = PathFinder.search(
+        //         new RoomPosition(centerX,centerY,roomName),
+        //         {pos:new RoomPosition(e[0],e[1],roomName),range:1}, 
+        //         {
+        //             roomCallback:()=>{return costs},
+        //             maxRooms:1
+        //         }
+        //     )
+        //     ret.path.forEach(pos=>{
+        //         if(costs.get(pos.x,pos.y) != 1){
+        //             structMap['road'].push([pos.x,pos.y])
+        //             costs.set(pos.x,pos.y,1)
+        //         }
+        //     })
             
-        })
+        // })
         //#endregion
 
         //#region 旧的连接外矿道路
@@ -1575,18 +1599,25 @@ let pro={
 
 global.ManagerPlanner = pro;
 module.exports = {
-    run(){
+    run (roomName,pc,pm,pa,pb) {
         let roomStructsData = undefined //放全局变量
-
-        let p = Game.flags.p; // 触发器
-        let pa = Game.flags.pa;
-        let pb = Game.flags.pb;
-        let pc = Game.flags.pc;
-        let pm = Game.flags.pm;
-        if(p) {
-            roomStructsData = ManagerPlanner.computeManor(p.pos.roomName,[pc,pm,pa,pb])
-            Game.flags.p.remove()
+        if(!roomStructsData && Game.cpu.bucket >= 200){
+            if(pb)
+                roomStructsData = ManagerPlanner.computeManor(roomName,[pc,pm,pa,pb])
+            else{
+                roomStructsData = ManagerPlanner.computeManor(roomName,[pc,pm,pa])
+            }
         }
+
+        // let p = Game.flags.p; // 触发器
+        // let pa = Game.flags.pa;
+        // let pb = Game.flags.pb;
+        // let pc = Game.flags.pc;
+        // let pm = Game.flags.pm;
+        // if(p) {
+        //     roomStructsData = ManagerPlanner.computeManor(p.pos.roomName,[pc,pm,pa,pb])
+        //     Game.flags.p.remove()
+        // }
         if(roomStructsData){
             //这个有点消耗cpu 不看的时候记得关
             HelperVisual.showRoomStructures(roomStructsData.roomName,roomStructsData.structMap)
