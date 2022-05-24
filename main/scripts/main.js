@@ -78,23 +78,53 @@ function main() {
         Game.cpu.generatePixel();
     }
     if(Game.shard.name == 'LAPTOP-46VTIAM7'){
-        require('./autoPlan').run()
-        let ob = Game.getObjectById('67639afd3dae49d')
-        let roomName = 'W1N3'
-        ob.observeRoom(roomName)
-        if(Game.rooms[roomName]){
-            let room = Game.rooms[roomName]
-            let controller = room.controller
-            let miner = room.find(FIND_MINERALS)
-            let sources = room.find(FIND_SOURCES)
-            
-            require("./63超级扣位置自动布局_改良版").run(roomName,controller,miner[0],sources[0],sources.length>1?sources[1]:null)
-            let creep = Game.creeps.pathtest
-            if(creep){
-                // require("longmove").longMoveTo(creep,new RoomPosition(17,32,'W9N2'))
-                // creep.move(1)
+        let center = Game.flags.center;
+        if(center){
+            // let roomName = center.pos.roomName
+            // let ob = Game.getObjectById('67639afd3dae49d')
+            // ob.observeRoom(roomName)
+            // if(Game.rooms[roomName]){
+            //     let room = Game.rooms[roomName]
+            //     let controller = room.controller
+            //     let miner = room.find(FIND_MINERALS)
+            //     let sources = room.find(FIND_SOURCES)
+            //     let points = [controller.pos,miner[0].pos,sources[0].pos]
+            //     if(sources.length>1)points.push(sources[1].pos)
+            //     require('./建筑规划').run(center.pos,points)
+            // }
+
+            let center = Game.flags.center; // 房间中心的位置
+            let pa = Game.flags.pa;
+            let pb = Game.flags.pb;
+            let pc = Game.flags.pc;
+            let pm = Game.flags.pm;
+            if(center) {
+                let points = [pc.pos,pm.pos,pa.pos]
+                if(pb)points.push(pb.pos)
+                let t = Game.cpu.getUsed()
+                require('./建筑规划').run(center.pos,points)
+                console.log(Game.cpu.getUsed() - t)
             }
+            
+            // cal(center.pos)
         }
+        
+        
+        // let roomName = 'W1N3'
+        // ob.observeRoom(roomName)
+        // if(Game.rooms[roomName]){
+        //     let room = Game.rooms[roomName]
+        //     let controller = room.controller
+        //     let miner = room.find(FIND_MINERALS)
+        //     let sources = room.find(FIND_SOURCES)
+            
+        //     require("./63超级扣位置自动布局_改良版").run(roomName,controller,miner[0],sources[0],sources.length>1?sources[1]:null)
+        //     let creep = Game.creeps.pathtest
+        //     if(creep){
+        //         // require("longmove").longMoveTo(creep,new RoomPosition(17,32,'W9N2'))
+        //         // creep.move(1)
+        //     }
+        // }
     }
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }

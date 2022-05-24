@@ -127,6 +127,9 @@ function runRoom(room){
                 carryCtrl.returnCreep(room,carryer.name)
                 memory.carryer = null
             }
+        }else{
+            carryCtrl.returnCreep(room,carryerName)
+            memory.carryer = null
         }
     }
 }
