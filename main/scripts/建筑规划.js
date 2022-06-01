@@ -21,7 +21,7 @@ if(center) {
 }
 
 【说明】:
-1、消耗CPU大概10个左右
+1、消耗CPU大概20个左右
 2、控制器的container周围3*3区域默认为upgrader区域，不放置建筑，会尽量避免寻路走这里
 3、lab的位置会优先选择4*4离中心最远的地方（为了防止一颗核弹同时打lab和中心）
    找不到会选择3*5或者5*3等方案
@@ -31,6 +31,8 @@ if(center) {
 
 ********************************/
 
+let cache = {}
+
 module.exports={
     /**
      * @param {RoomPosition} centerpos 房间布局的中心位置
@@ -38,7 +40,14 @@ module.exports={
      * @returns 
      */
     run(centerpos,points){
-        let structMap = autoPlan(centerpos,points)
+        let name = centerpos.x+'_'+centerpos.y+'_'+centerpos.roomName
+        let structMap
+        if(cache[name]){
+            structMap = cache[name]
+        }else{
+            cache[name] = structMap = autoPlan(centerpos,points)
+        }
+        
         // 可视化，不看就关了
         showRoomStructures(centerpos.roomName,structMap)
         return structMap
@@ -115,55 +124,54 @@ function autoPlan(center,points){
         let costs = new PathFinder.CostMatrix;
         roomCost.forEach((x,y,val)=>{costs.set(x,y,val)})
         
+        if(points.length > 0){
+            let max_cnt = 0 // 周围的空地数量
         
-        let max_cnt = 0 // 周围的空地数量
-        
-        let containerPoses = []
-
-        roomCost.forRange((_x,_y,val)=>{
-            if(val == 0xff)return
-            let pos = new RoomPosition(_x,_y,center.roomName)
-            
-            let cnt = 0
-            roomCost.forNear((x,y,val)=>{
-                if(val!=0xff){
-                    cnt++
+            let containerPoses = []
+    
+            roomCost.forRange((_x,_y,val)=>{
+                if(val == 0xff)return
+                let pos = new RoomPosition(_x,_y,center.roomName)
+                
+                let cnt = 0
+                roomCost.forNear((x,y,val)=>{
+                    if(val!=0xff){
+                        cnt++
+                    }
+                },pos.x,pos.y)
+                if(cnt > max_cnt){
+                    containerPoses = []
+                    containerPoses.push(pos)
+                    max_cnt = cnt
+                }else if(cnt == max_cnt){
+                    containerPoses.push(pos)
                 }
-            },pos.x,pos.y)
-            if(cnt > max_cnt){
-                containerPoses = []
-                containerPoses.push(pos)
-                max_cnt = cnt
-            }else if(cnt == max_cnt){
-                containerPoses.push(pos)
+                
+            },points[0].x,points[0].y,2)
+            
+            containerPoses.forEach(pos=>{
+                let ret = PathFinder.search(
+                    pos, {pos:center,range:2},
+                    {
+                        roomCallback:()=>costs,
+                        maxRooms:1
+                    }
+                )
+                containerPoses.pathlen = ret.path.length
+            })
+            containerPoses.sort(a=>a.pathlen)
+            let containerPos = _.head(containerPoses)
+            
+            if(containerPos){
+                structMap[STRUCTURE_CONTAINER].push([containerPos.x,containerPos.y])
+                roomCost.set(containerPos.x,containerPos.y,0xff)
+                costs.set(containerPos.x,containerPos.y,0xff)
+                roomCost.forNear((x,y,val)=>{
+                    roomCost.set(x,y,90)
+                    costs.set(x,y,90)
+                },containerPos.x,containerPos.y)
             }
-            
-        },points[0].x,points[0].y,2)
-        
-        containerPoses.forEach(pos=>{
-            let ret = PathFinder.search(
-                pos, {pos:center,range:2},
-                {
-                    roomCallback:()=>costs,
-                    maxRooms:1
-                }
-            )
-            containerPoses.pathlen = ret.path.length
-        })
-        containerPoses.sort(a=>a.pathlen)
-        let containerPos = _.head(containerPoses)
-        
-        if(containerPos){
-            structMap[STRUCTURE_CONTAINER].push([containerPos.x,containerPos.y])
-            roomCost.set(containerPos.x,containerPos.y,0xff)
-            costs.set(containerPos.x,containerPos.y,0xff)
-            roomCost.forNear((x,y,val)=>{
-                roomCost.set(x,y,90)
-                costs.set(x,y,90)
-            },containerPos.x,containerPos.y)
         }
-        
-
         for(let i=1;i<points.length;i++){
             let x,y
             [x,y] = [points[i].x,points[i].y]
@@ -517,9 +525,11 @@ function autoPlan(center,points){
             }
         }
         // 控制器周围的消耗提高
-        roadMap.forNear((x,y,val)=>{
-            costs.set(x,y,10)
-        },structMap["container"][0][0],structMap["container"][0][1])
+        if(structMap["container"].length>0){
+            roadMap.forNear((x,y,val)=>{
+                costs.set(x,y,10)
+            },structMap["container"][0][0],structMap["container"][0][1])
+        }
         
         structMap["road"].forEach(e=>{
             costs.set(e[0],e[1],1)

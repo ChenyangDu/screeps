@@ -257,7 +257,7 @@ function Dijkstra(){
                 console.log(searchedroom_num++,top.room,top.dis)
             //console.log('top',top.room,top.dis)
             for(let nextRoomName in edges[top.room]){
-                if(!dis[nextRoomName] && !mid[nextRoomName]&& top.dis + edges[top.room][nextRoomName] < 1500){
+                if(!dis[nextRoomName] && !mid[nextRoomName]&& top.dis + edges[top.room][nextRoomName] < 30000){
                     if(!tmp_dis[nextRoomName])tmp_dis[nextRoomName] = top.dis + edges[top.room][nextRoomName]+1;
                     if(top.dis + edges[top.room][nextRoomName] < tmp_dis[nextRoomName]){
                         queue.push({

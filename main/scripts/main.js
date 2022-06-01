@@ -6,12 +6,15 @@ let spawnCtrl = require("spawnCtrl")
 let tower = require("tower")
 let carryCtrl = require("carryCtrl")
 let carryEnergy = require("carryEnergy")
+let carryTerminal = require("carryTerminal")
 let eye = require("eye")
 var labCtrl = require('labCtrl')
 let miner = require('miner')
 let newRoom = require('newRoom')
 let shardmove = require('shardmove')
 let shardMemory = require("shardMemory")
+let terminalCtrl = require("./terminalCtrl")
+let autoPlan = require('./建筑规划')
 
 require('prototype.Creep.move')
 require('prototype.Room')
@@ -35,10 +38,10 @@ function main() {
     eye.init();
     baseCreep.init();
     labCtrl.init()
-    carryCtrl.init();
-    if(Game.shard.name != 'LAPTOP-46VTIAM7')
+    carryCtrl.init(); // 搬运任务要在这之后
+    if(Game.shard.name != 'LAPTOP-46VTIAM7'){
         shardMemory.init();
-
+    }
 
     // 生产并运行harvetser builder upgrader
     baseCreep.run();
@@ -64,7 +67,12 @@ function main() {
     labCtrl.reaction()
     labCtrl.end() // 所有boost操作要在这之前
 
-    carryCtrl.end();
+    carryTerminal.run() // 处理terminal
+
+    carryCtrl.end(); // 搬运任务要在这之前
+
+    terminalCtrl.run();
+
     if(Game.shard.name != 'LAPTOP-46VTIAM7'){
         shardmove.run();
         shardMemory.end();
@@ -76,6 +84,23 @@ function main() {
     clear();
     if(Game.cpu.bucket == 10000 && Game.shard.name != 'LAPTOP-46VTIAM7'){
         Game.cpu.generatePixel();
+    }
+    let center = Game.flags.center;
+    if(center){
+        let pa = Game.flags.pa;
+        let pb = Game.flags.pb;
+        let pc = Game.flags.pc;
+        let pm = Game.flags.pm;
+        if(center) {
+            let points = []
+            if(pc)points.push(pc.pos)
+            if(pm)points.push(pm.pos)
+            if(pa)points.push(pa.pos)
+            if(pb)points.push(pb.pos)
+            let t = Game.cpu.getUsed()
+            autoPlan.run(center.pos,points)
+            console.log(Game.cpu.getUsed() - t)
+        }
     }
     if(Game.shard.name == 'LAPTOP-46VTIAM7'){
         let center = Game.flags.center;
@@ -105,27 +130,9 @@ function main() {
                 require('./建筑规划').run(center.pos,points)
                 console.log(Game.cpu.getUsed() - t)
             }
-            
-            // cal(center.pos)
         }
-        
-        
-        // let roomName = 'W1N3'
-        // ob.observeRoom(roomName)
-        // if(Game.rooms[roomName]){
-        //     let room = Game.rooms[roomName]
-        //     let controller = room.controller
-        //     let miner = room.find(FIND_MINERALS)
-        //     let sources = room.find(FIND_SOURCES)
-            
-        //     require("./63超级扣位置自动布局_改良版").run(roomName,controller,miner[0],sources[0],sources.length>1?sources[1]:null)
-        //     let creep = Game.creeps.pathtest
-        //     if(creep){
-        //         // require("longmove").longMoveTo(creep,new RoomPosition(17,32,'W9N2'))
-        //         // creep.move(1)
-        //     }
-        // }
     }
+    shardMemory.clear()
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }
 

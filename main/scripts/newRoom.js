@@ -4,9 +4,9 @@ let longmove = require("longmove")
 let shardmove = require("shardmove")
 module.exports = {
     run(){
-        runHelpEnergy('shard3','E39N49','shard1','E36N41',200,20)
-        runHelpEnergy('shard2','E41N35','shard1','E36N41',200,15)
-        runHelpEnergy('shard1','E39N51','shard1','E36N41',500,10)
+        // runHelpEnergy('shard3','E39N49','shard1','E36N41',200,20)
+        // runHelpEnergy('shard2','E41N35','shard1','E36N41',200,15)
+        // runHelpEnergy('shard1','E39N51','shard1','E36N41',500,10)
     }
 }
 
@@ -23,30 +23,34 @@ function getHelpRooms(roomName){
     return res;
 }
 
-function runClaim(flag,highRoomName,lowRoomName){
-    let creepName = 'claim_'+lowRoomName
-    let creep = Game.creeps[creepName]
-    if(!creep){
-        spawnCtrl.addSpawnList(
-            highRoomName,
-            spawnCtrl.getbody([CLAIM,],[MOVE,],850),
-            creepName
-        )
-    }else{
-        if(creep.pos.roomName == lowRoomName){
-            let controller = creep.room.controller
-            if(creep.pos.isNearTo(controller)){
-                creep.claimController(controller)
+function runClaim(lowRoomShard,lowRoomName,){
+    let creep = Game.creeps.claim;
+    if(creep){
+        if(creep.ticksToLive >= 590)
+            shardmove.start(creep.name,lowRoomShard,lowRoomName)
+        
+        if(Game.shard.name == lowRoomShard && creep.room.name == lowRoomName){
+            if(!creep.memory.overshard){
+                creep.memory.overshard = true;
+                shardmove.stop(creep.name)
+            }
+            if(creep.pos.isNearTo(creep.room.controller)){
+                if(!creep.room.controller.my)
+                    creep.claimController(creep.room.controller)
             }else{
-                creep.moveTo(controller,{
-                    maxRooms:1
+                creep.moveTo(creep.room.controller,{
+                    plainCost:1,
+                    swampCost:1,
+                    visualizePathStyle:{
+                        fill: 'transparent',
+                        stroke: '#fff',
+                        lineStyle: 'dashed',
+                        strokeWidth: .15,
+                        opacity: .1
+                    }
                 })
             }
-        }else{
-            creep.moveTo(flag,{
-                swampCost:1,
-                plainCost:1
-            })
+            
         }
     }
 }

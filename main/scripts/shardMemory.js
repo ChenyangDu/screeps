@@ -18,5 +18,8 @@ module.exports = {
     },
     end(){
         InterShardMemory.setLocal(JSON.stringify(memory[Game.shard.name]))
+    },
+    clear(){
+        InterShardMemory.setLocal("{}")
     }
 }

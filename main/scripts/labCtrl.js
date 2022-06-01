@@ -40,11 +40,26 @@ boost:
  */
 
 
-//如果你的房间物流能够保证提供这些基础矿物，那么程序会默认这些矿物数量为无穷大
-const UNLIMITED_RESOURCES = ['Z','K','U','L','H','O','X'];
+
+const BASE_RESOURCES = ['Z','K','U','L','H','O','X','OH','ZK','UL'];
 
 let baseCreep = require("baseCreep")
 let carryCtrl = require("carryCtrl")
+
+function getLimitMin(type){
+    if(BASE_RESOURCES.indexOf(type) != -1){
+        return 0
+    }
+    return 2500
+}
+
+function getLimitMax(type){
+    const FIGHT = ["XUH2O","XKHO2","XLHO2","XZH2O","XZHO2","XGHO2"]
+    if(FIGHT.indexOf(type) != -1){
+        return 20000
+    }
+    return 3000
+}
 
 var runCreep = {
     init(room){
@@ -233,8 +248,10 @@ function boost(room,opt,creep){
                 // 找周围一圈lab
                 let targets = creep.pos.findInRange(labs,1)
                 targets.forEach(lab=>{
-                    lab.boostCreep(creep)
-                    creep_memory.materials[ room_memory.boost_labs[lab.id].type ].done = true;
+                    let ret = lab.boostCreep(creep)
+                    if(ret == OK || ret == ERR_NOT_ENOUGH_RESOURCES){
+                        creep_memory.materials[ room_memory.boost_labs[lab.id].type ].done = true;
+                    }
                 })
             }else{
                 // 移动到最近的lab
@@ -622,6 +639,9 @@ function do_reaction(room){
                  creep.store.getFreeCapacity(lab.mineralType) >= lab.store[lab.mineralType]){
                     if(creep.pos.isNearTo(lab)){
                         creep.withdraw(lab,lab.mineralType)
+                        if(i < labs.length-1){
+                            creep.moveTo(labs[i+1])
+                        }
                     }else{
                         creep.moveTo(lab)
                     }
@@ -641,18 +661,6 @@ function do_reaction(room){
             }
         }
     }
-}
-
-function getLimitMin(type){
-    return 2500
-}
-
-function getLimitMax(type){
-    const FIGHT = ["XUH2O","XKHO2","XLHO2","XZH2O","XZHO2","XGHO2"]
-    if(FIGHT.indexOf(type) != -1){
-        return 20000
-    }
-    return 3000
 }
 
 function getAllType(type,room,labs,creeps){
