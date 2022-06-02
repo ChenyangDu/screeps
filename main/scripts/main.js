@@ -118,21 +118,22 @@ function main() {
             //     require('./建筑规划').run(center.pos,points)
             // }
 
-            let center = Game.flags.center; // 房间中心的位置
-            let pa = Game.flags.pa;
-            let pb = Game.flags.pb;
-            let pc = Game.flags.pc;
-            let pm = Game.flags.pm;
-            if(center) {
-                let points = [pc.pos,pm.pos,pa.pos]
-                if(pb)points.push(pb.pos)
-                let t = Game.cpu.getUsed()
-                require('./建筑规划').run(center.pos,points)
-                console.log(Game.cpu.getUsed() - t)
-            }
+            // let center = Game.flags.center; // 房间中心的位置
+            // let pa = Game.flags.pa;
+            // let pb = Game.flags.pb;
+            // let pc = Game.flags.pc;
+            // let pm = Game.flags.pm;
+            // if(center) {
+            //     let points = [pc.pos,pm.pos,pa.pos]
+            //     if(pb)points.push(pb.pos)
+            //     let t = Game.cpu.getUsed()
+            //     require('./建筑规划').run(center.pos,points)
+            //     console.log(Game.cpu.getUsed() - t)
+            // }
         }
     }
-    shardMemory.clear()
+    if(typeof(InterShardMemory) !== 'undefined')
+        shardMemory.clear()
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }
 

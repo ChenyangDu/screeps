@@ -1,6 +1,6 @@
 /********************************
 author：ChenyangDu
-version:1.0
+version:1.1
 
 自动布局
 【功能】：选定中心位置，自动规划房内布局
@@ -20,14 +20,24 @@ if(center) {
     require('./建筑规划').run(center.pos,points)
 }
 
+【返回结果】:
+// 所有位置都用[x,y]表示
+{
+    structMap, //一个字典，key是建筑名称，val是建筑位置的数组
+    roadLength, //一个数组，不同等级路的长度，第0个元素是0
+    containers, //一个位置数组，对应[pc,pm,pa,pb]所对应的container
+    links, //一个位置数组，对应[pa,pb,中央link]所对应的link
+}
+
 【说明】:
 1、消耗CPU大概20个左右
 2、控制器的container周围3*3区域默认为upgrader区域，不放置建筑，会尽量避免寻路走这里
 3、lab的位置会优先选择4*4离中心最远的地方（为了防止一颗核弹同时打lab和中心）
    找不到会选择3*5或者5*3等方案
 4、塔位置是随机选了6个rampart然后找最近的
-5、中心点尽量往中间选，靠近边界可能出bug
-6、先这样吧。。。。虽然有bug但凑活能用了
+5、link在5级的时候会先造中间的link，然后造离得远的那个
+6、中心点尽量往中间选，靠近边界可能出bug
+7、先这样吧。。。。虽然有bug但凑活能用了
 
 ********************************/
 
@@ -41,22 +51,44 @@ module.exports={
      */
     run(centerpos,points){
         let name = centerpos.x+'_'+centerpos.y+'_'+centerpos.roomName
-        let structMap
+        let ret
         if(cache[name]){
-            structMap = cache[name]
+            ret = cache[name]
         }else{
-            cache[name] = structMap = autoPlan(centerpos,points)
+            cache[name] = ret = autoPlan(centerpos,points)
         }
-        
         // 可视化，不看就关了
-        showRoomStructures(centerpos.roomName,structMap)
-        return structMap
+
+        // 以下方法可以按等级标记
+        for(let level = 1;level <= 8;level ++){
+            for(let type in CONTROLLER_STRUCTURES){
+                let lim = CONTROLLER_STRUCTURES[type]
+                if(type == 'road')lim = ret.roadLength
+                for(let i = lim[level-1];i<Math.min(ret.structMap[type].length,lim[level]);i++){
+                    let e = ret.structMap[type][i]
+                    new RoomVisual(centerpos.roomName).text(level,e[0]+0.3,e[1]+0.5,{font:0.4,opacity:0.8})
+                }
+                if(type == 'container'){
+                    for(let i = 0;i<ret.containers.length;i++){
+                        let e = ret.containers[i]
+                        if((level == 1 && i != 1) || (level == 6 && i == 1)){
+                            new RoomVisual(centerpos.roomName).text(level,e[0]+0.3,e[1]+0.5,{font:0.4,opacity:0.8})
+                        }
+                    }
+                    
+                }
+            }
+        }
+        // 渲染建筑
+        showRoomStructures(centerpos.roomName,ret.structMap)
+        return ret
     }
 }
 
 /**
  * 
  * @param {RoomPosition} center 
+ * @param {RoomPosition[]} points 房间中控制器、字母矿、能量矿的数组
  */
 function autoPlan(center,points){
     let cpu = Game.cpu.getUsed();
@@ -350,10 +382,12 @@ function autoPlan(center,points){
         let structCnt = 0;
         let roadque = [[center.x,center.y,1]]// 路的队列
         let structque = []// 建筑的队列
-        
+        let visited = new RoomArray()
+        visited.init()
         // 用两个队列，先处理建筑的，并且建筑一加到队列中，就立即在地图上标记，
         // 路反过来，等从队列中取出，需要扩展的时候才加入地图
         centerPathRoad.set(center.x,center.y,1)
+        visited.set(center.x,center.y,1)
         while((roadque.length || structque.length) && structCnt < 86){
             let top,x,y;
             top = structque.length?structque.shift():roadque.shift()
@@ -363,12 +397,16 @@ function autoPlan(center,points){
             if(roadMap.get(x,y) == 1){
                 centerPathRoad.set(x,y,top[2])
                 centerPathRoad.forNear((x,y,val)=>{
-                    if((val == 0 || val > top[2]+1) && roomCost.get(x,y) < 100){
-                        if(roadMap.get(x,y) == 1)
+                    if((val == 0 || val > top[2]+1) && roomCost.get(x,y) < 100
+                         && visited.get(x,y) == 0){
+                        if(roadMap.get(x,y) == 1){
                             roadque.push([x,y,top[2]+1])
+                            visited.set(x,y,1)
+                        }
                         else{
                             if(structCnt < 86 && roomCost.get(x,y) < 90){
                                 structque.push([x,y,top[2]+1])
+                                visited.set(x,y,1)
                                 structCnt++
                                 roadMap.set(x,y,2)
                                 centerPathRoad.set(x,y,top[2]+1)
@@ -418,6 +456,7 @@ function autoPlan(center,points){
     }
 
     // 处理lab
+    let labCenter = null
     {
         let sumExt = new RoomArray()
         sumExt.init()
@@ -448,6 +487,7 @@ function autoPlan(center,points){
                         structMap[STRUCTURE_LAB].push([x,y])
                     }
                 }
+                labCenter = [labPos.x-(len_x-1)/2,labPos.y-(len_y-1)/2]
                 return true
             }
             return false
@@ -456,7 +496,6 @@ function autoPlan(center,points){
         getlab(4,4)||getlab(3,5)||getlab(5,3)
         
     }
-    
     
     // 处理nuker observe
     {
@@ -509,6 +548,11 @@ function autoPlan(center,points){
         if(val == 2)structMap[STRUCTURE_EXTENSION].push([x,y])
     })
 
+    // 记录container、link原来对应的位置
+    let containers = [],links = []
+    structMap['container'].forEach(p=>containers.push(p))
+    structMap['link'].forEach(p=>links.push(p))
+    
     // 连接矿/控制器
     {
         let costs = new PathFinder.CostMatrix;
@@ -545,16 +589,100 @@ function autoPlan(center,points){
                     maxRooms:1
                 }
             )
+            let lastCenterLength
             ret.path.forEach(pos=>{
                 if(costs.get(pos.x,pos.y) != 1){
                     structMap['road'].push([pos.x,pos.y])
                     costs.set(pos.x,pos.y,1)
+                }else{
+                    // new RoomVisual(center.roomName).text('D'+centerPathRoad.get(pos.x,pos.y),pos.x,pos.y,{color:'red'})
+                    // updateCenterPathRoad(pos.x,pos.y,centerPathRoad.get(pos.x,pos.y))
+                }
+                if(centerPathRoad.get(pos.x,pos.y) != 0){
+                    lastCenterLength = centerPathRoad.get(pos.x,pos.y)
+                }else{
+                    lastCenterLength ++
+                    centerPathRoad.set(pos.x,pos.y,lastCenterLength)
+                    roadMap.set(pos.x,pos.y,1)
                 }
             })
+            centerPathRoad.set(e[0],e[1],lastCenterLength+1)
+            roadMap.set(e[0],e[1],2)
         })
     }
+
+    
+    // 删除多余的建筑
+    for(let type in structMap){
+        if(type == 'lab'){
+            structMap[type].sort((a,b)=>getRange(a,labCenter)-getRange(b,labCenter))
+        }else if(type == 'link'){
+            structMap[type].sort((a,b)=>getRange(a,[center.x,center.y])-getRange(b,[center.x,center.y]))
+            if(structMap[type].length == 3){
+                [structMap[type][2],structMap[type][1]] = [structMap[type][1],structMap[type][2]]
+            }
+        }else
+        {
+            structMap[type].sort((a,b)=>centerPathRoad.get(a[0],a[1])-centerPathRoad.get(b[0],b[1]))
+        }
+    }
+    let roads = {}
+    for(let level = 8;level > 0;level --){
+        roads[level] = []
+        for(let type in structMap){
+            let length = Math.min(structMap[type].length,CONTROLLER_STRUCTURES[type][level])
+            structMap[type].slice(length).forEach(e=>{
+                roadMap.set(e[0],e[1],0)
+            })
+            
+            // if(level >= Game.time % 8)
+            //     structMap[type] = structMap[type].slice(0,length)
+        }
+        if(level == 5 && containers.length >= 2){ // 删掉miner周围的container
+            roadMap.set(containers[1][0],containers[1][1],0)
+        }
+        for(let i = structMap['road'].length-1;i>=0;i--){
+            let x = structMap['road'][i][0]
+            let y = structMap['road'][i][1]
+            let val = centerPathRoad.get(x,y)
+            // 周围有其他建筑或路径且只能通过本路到达则标记有用
+            let need = false
+            centerPathRoad.forNear((_x,_y,_val)=>{
+                if(!need && _val == val+1 && roadMap.get(_x,_y) > 0){ // 路径或建筑
+                    need = true
+                    centerPathRoad.forNear((__x,__y,__val)=>{
+                        if(need && (__x != x || __y != y) && __val == val 
+                        && roadMap.get(__x,__y) == 1)need = false
+                    },_x,_y)
+                }
+            },x,y)
+            if(!need){
+                roadMap.set(x,y,0)
+                let re = structMap['road'].splice(i,1)
+                if(level < 8){
+                    roads[level + 1].push(re[0])
+                }
+            }
+        }
+    }
+    let roadLength = [0,structMap['road'].length]
+    for(let level = 2;level <= 8;level ++){
+        if(roads[level].length)
+            structMap['road'] = structMap['road'].concat(roads[level])
+        roadLength.push(structMap['road'].length)
+        // console.log(roadLength)
+    }
+    
+    // let level = 1;
+    // for(let i = 0;i<structMap['road'].length;i++){
+    //     while(i >= roadLength[level])level ++
+    //     let e = structMap['road'][i]
+    //     new RoomVisual(center.roomName).text(level,e[0],e[1]+0.5,{font:0.5,opacity:0.5})
+    // }
+    
+
     // console.log(Game.cpu.getUsed()-cpu)
-    return structMap;
+    return {structMap,roadLength,containers,links};
 
     // let cnt = {}
     // roadMap.forEach((x,y,val)=>{
