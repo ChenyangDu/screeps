@@ -1,3 +1,4 @@
+let autoPlan = require("./建筑规划")
 module.exports = {
     runRoom(roomName){
         var flag = Game.flags["Main_" + roomName]
@@ -5,18 +6,22 @@ module.exports = {
         if(flag){
             runFlag(flag)
         }
+        
     },
     run:function(){
         for(let room of Game.myrooms){
             let roomName = room.name;
-            var flag = Game.flags["Main_" + roomName]
-            if(room.controller.level == 1 || Game.time % 113 == 0){
+            let flag = Game.flags["Main_" + roomName]
+            if(room.controller.level <= 1 || Game.time % 179 == 0){
                 if(flag){
                     // runFlag(room,flag)
                 }else if(room.memory.structMap){
                     runMemory(room)
                 }
-
+                flag = Game.flags["Center_" + roomName]
+                if(flag){
+                    runCenterFlag(flag)
+                }
             }
             if(Game.time % 9973 == 0){
                 removeRoad(room)
@@ -99,6 +104,79 @@ function runMemory(room){
         if(level >= 6){
             extractor(room,center)
         }
+    }
+}
+/**
+ * 
+ * @param {Flag} flag 
+ * @returns 
+ */
+function runCenterFlag(flag){
+    if(!flag.room)return
+    let room = flag.room
+    if(!flag.memory.plan){
+        let controller = room.controller
+        let miner = room.find(FIND_MINERALS)
+        let sources = room.find(FIND_SOURCES)
+        let points = [controller.pos,miner[0].pos,sources[0].pos]
+        if(sources.length>1)points.push(sources[1].pos)
+        flag.memory.plan = autoPlan.run(flag.pos,points,true)
+    }
+    let plan = flag.memory.plan
+    let level = room.controller.level
+    for(let type in CONTROLLER_STRUCTURES){
+
+        if(level <= 1 && type != 'spawn')continue
+        if(level <= 3 && type == 'rampart')continue
+        if(type == 'container'){
+            for(let i = 0;i<plan.containers.length;i++){
+                let e = plan.containers[i]
+                let pos = new RoomPosition(e[0],e[1],room.name)
+                if(level >= 6 || i != 1){
+                    pos.createConstructionSite(STRUCTURE_CONTAINER)
+                    if(i > 1)
+                        pos.createFlag(room.name + '_' + i,COLOR_YELLOW,COLOR_YELLOW)
+                    // new RoomVisual(flag.roomName).text(level,e[0]+0.3,e[1]+0.5,{font:0.4,opacity:0.8})
+                }
+            }
+            continue
+        }
+        if(type == 'rampart'){
+            if(!room.storage)continue
+        }
+
+        let lim = CONTROLLER_STRUCTURES[type]
+        if(type == 'road')lim = plan.roadLength
+        for(let i = 0;i<Math.min(plan.structMap[type].length,lim[level]);i++){
+            let e = plan.structMap[type][i]
+            let pos = new RoomPosition(e[0],e[1], room.name)
+            let structures = pos.lookFor(LOOK_STRUCTURES).filter((o)=>(o.structureType == type))
+            let sites = pos.lookFor(LOOK_CONSTRUCTION_SITES)
+            let compeleted = true
+            if(sites.length){
+                compeleted = false
+                if(type == 'rampart'){
+                    let wall = pos.lookFor(LOOK_STRUCTURES).filter((o)=>(o.structureType == STRUCTURE_WALL))
+                    if(wall.length > 0){
+                        sites[0].remove()
+                        console.log('delete',pos);
+                    }
+                }
+            }else{
+                if(!structures.length){
+                    if(type == 'rampart'){
+                        let wall = pos.lookFor(LOOK_STRUCTURES).filter((o)=>(o.structureType == STRUCTURE_WALL))
+                        if(wall.length > 0)continue;
+                    }
+                    if(pos.createConstructionSite(type) == OK){
+                        compeleted = false
+                        if(type == STRUCTURE_LAB)break;//lab一个一个造
+                    }
+                }
+            }
+            new RoomVisual(room.name).text(level,e[0]+0.3,e[1]+0.5,{font:0.4,opacity:0.8})
+        }
+        
     }
 }
 

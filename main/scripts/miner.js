@@ -54,7 +54,7 @@ function runRoom(room){
     let memory = room.memory.miner
     let miner = Game.getObjectById(memory.id)
     // console.log(miner.mineralAmount)
-    if(!miner || !miner.mineralAmount)return;
+    if(!miner)return;
     let pos = new RoomPosition(memory.pos.x,memory.pos.y,room.name)
     let container = pos.findInRange(FIND_STRUCTURES,1,{
         filter:o=>o.structureType == STRUCTURE_CONTAINER
@@ -65,20 +65,23 @@ function runRoom(room){
         return;
     }
 
-    let harvester = Game.creeps["miner_"+room.name]
-    if(!harvester){
-        let body = spawnCtrl.getbody([],[WORK,WORK,WORK,WORK,MOVE,],room.energyCapacityAvailable)
-        spawnCtrl.addSpawnList(room.name,body,"miner_"+room.name)
-    }else{
-        if(harvester.pos.isEqualTo(pos)){
-            
-            if(miner && Game.time%6==0){
-                harvester.harvest(miner)
-            }
+    if(miner.mineralAmount > 0){
+        let harvester = Game.creeps["miner_"+room.name]
+        if(!harvester){
+            let body = spawnCtrl.getbody([],[WORK,WORK,WORK,WORK,MOVE,],room.energyCapacityAvailable)
+            spawnCtrl.addSpawnList(room.name,body,"miner_"+room.name)
         }else{
-            harvester.moveTo(pos)
+            if(harvester.pos.isEqualTo(pos)){
+                
+                if(miner && Game.time%6==0){
+                    harvester.harvest(miner)
+                }
+            }else{
+                harvester.moveTo(pos)
+            }
         }
     }
+    
     let carryerName = memory.carryer
 
     if(container.store.getUsedCapacity() >= 1000){

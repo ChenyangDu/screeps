@@ -61,8 +61,11 @@ function runCreep(){
     
     for(let room of Game.myrooms){
         havConstructionSites[room.name] = false
-        if(Game.time % 23 == 0 && room.find(FIND_CONSTRUCTION_SITES).length)
-            havConstructionSites[room.name] = true;
+        if(Game.time % 23 == 0 && room.find(FIND_CONSTRUCTION_SITES).length){
+            let sites = 0
+            room.find(FIND_CONSTRUCTION_SITES).forEach(o=>sites+=o.progressTotal)
+            havConstructionSites[room.name] = sites;
+        }
     }
 
     for(let roomName in allCreeps){
@@ -72,22 +75,26 @@ function runCreep(){
             for(let creep of creeps){
                 roleHarvester.run(creep);
             }
-        // upgrader
-        creeps = allCreeps[roomName]["upgrader"]
-        if(creeps && creeps.length)
-            for(let creep of creeps){
-                if(havConstructionSites[roomName]){
-                    creep.memory.role = 'builder'
-                    roleBuilder.run(creep);
-                }
-                roleUpgrader.run(creep);
-            }
         // builder
         creeps = allCreeps[roomName]["builder"]
         if(creeps && creeps.length)
             for(let creep of creeps){
                 roleBuilder.run(creep);
+                havConstructionSites[roomName] -= creep.store.getCapacity()
             }
+        // upgrader
+        creeps = allCreeps[roomName]["upgrader"]
+        if(creeps && creeps.length)
+            for(let creep of creeps){
+                if(havConstructionSites[roomName] > 0){
+                    creep.memory.role = 'builder'
+                    creep.say('change')
+                    havConstructionSites[roomName] -= creep.store.getCapacity()
+                    roleBuilder.run(creep);
+                }
+                roleUpgrader.run(creep);
+            }
+        
     }
 }
 /**
@@ -143,6 +150,7 @@ function spawnHarvester(room){
 }
 
 function needHarvester(room){
+    return false
     return !haveEnergyIncome(room)
     // 如果没有搬运工且harvester快挂了
     if (allCreeps[room.name] && !allCreeps[room.name]["carryer"]){

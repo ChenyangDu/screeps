@@ -98,9 +98,20 @@ function flagRun(flag){
         }
     }
 }
-
+/**
+ * 
+ * @param {Creep} creep 
+ * @param {Flag} flag 
+ * @returns 
+ */
 //这部分主要负责控制creep
 function SourceKeeper (creep,flag){
+    //低等级自杀
+    if(creep.body.length <= 3){
+        if(creep.room.energyAvailable >= 550 && Game.time % 2 == _.last(creep.name.split('_'))){
+            creep.suicide()
+        }
+    }
     //container不存在就建一个
     var container = Game.getObjectById(flag.memory.container);
     if(needContainer){
@@ -139,6 +150,9 @@ function SourceKeeper (creep,flag){
     }else{
         source = flag.pos.findInRange(FIND_SOURCES,1)
         source = source[source.length-1]
+        if(!source){
+            console.log('error',flag.pos)
+        }
         flag.memory.source = source.id;
     }
     if(!container){

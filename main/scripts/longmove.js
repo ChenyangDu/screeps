@@ -31,7 +31,7 @@ module.exports = {
                 creep.moveByPath(search(creep,target))
             }
             
-            if(creep.ticksToLive % 5 == 0 && creep.room.find(FIND_HOSTILE_CREEPS).length>0){
+            if(creep.ticksToLive % 15 == 0 && creep.room.find(FIND_HOSTILE_CREEPS).length>0){
                 
                 creep.moveByPath(search(creep,target))
             }
@@ -40,22 +40,39 @@ module.exports = {
 }
 
 function search(creep,target){
-
+    
     // 使用`findRoute`计算路径的高阶计划，优先选择大路和自有房间
     let allowedRooms = { [ creep.room.name ]: true };
+    let str = ""
     let res = Game.map.findRoute(creep.room.name, target.roomName, {
         routeCallback(roomName) {
+            str += roomName
             if(eye.isfree(roomName) === false){
+                str += 'inf'
                 return Infinity
             }
-            return 1
+            str+=' '
+            let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+            let isHighway = (parsed[1] % 10 === 0) || 
+                            (parsed[2] % 10 === 0);
+            let isMyRoom = Game.rooms[roomName] &&
+                Game.rooms[roomName].controller &&
+                Game.rooms[roomName].controller.my;
+            if (isHighway || isMyRoom) {
+                return 1;
+            } else {
+                return 2.5;
+            }
         }
     })
+    str = ''
     if(res.length){
         res.forEach(function(info) {
+            str += info.room+" "
             allowedRooms[info.room] = true;
         });
     }
+    // console.log(str)
 
 
     let ret = PathFinder.search(creep.pos,target,{

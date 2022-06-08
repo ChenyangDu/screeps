@@ -49,7 +49,7 @@ module.exports={
      * @param {RoomPosition[]} points 房间中控制器、字母矿、能量矿的数组
      * @returns 
      */
-    run(centerpos,points){
+    run(centerpos,points,visual=true){
         let name = centerpos.x+'_'+centerpos.y+'_'+centerpos.roomName
         let ret
         if(cache[name]){
@@ -58,7 +58,7 @@ module.exports={
             cache[name] = ret = autoPlan(centerpos,points)
         }
         // 可视化，不看就关了
-
+        if(!visual)return
         // 以下方法可以按等级标记
         for(let level = 1;level <= 8;level ++){
             for(let type in CONTROLLER_STRUCTURES){

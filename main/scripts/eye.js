@@ -20,11 +20,16 @@ module.exports = {
 function init(){
     if(!Memory.eye)Memory.eye = {}
     if(!Memory.eye.rooms)Memory.eye.rooms = {}
+    for(let roomName in Game.rooms){
+        if(!Memory.eye.rooms[roomName]){
+            watchRoom(roomName)
+        }
+    }
 }
 
 function spawnSpy(){
     Game.myrooms.forEach(room => {
-        if(Game.time % 1019 == 0 && room.controller.level >= 3){
+        if(Game.time % 509 == 0 && room.controller.level >= 3){
             spawnCtrl.addSpawnList(room.name,[MOVE],"斥候_"+room.name+'_'+Game.time%1511)
         }
     });
@@ -114,7 +119,7 @@ function watchRoom(room){
  */
 function isfree(roomName){
     let memory = Memory.eye.rooms[roomName]
-    if(!memory)return false // 未探索的房间
+    if(!memory)return true // 未探索的房间
     if(!memory.controller || !memory.controller.ownerusername)return true; //没有控制器的房间
     if(memory.controller.ownerusername != Game.username){
         return false // 别人的房间

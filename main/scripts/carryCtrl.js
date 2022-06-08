@@ -173,7 +173,7 @@ function needCarryer(room){
     }
     // console.log(room.memory.carryctrl.busyTicks)
     try{
-        let flag = Game.flags["Main_"+room.name]
+        let flag = Game.flags["Main_"+room.name] || Game.flags["Center_"+room.name]
         new RoomVisual(room.name).text(room.memory.carryctrl.busyTicks,flag.pos.x,flag.pos.y-1)
     }catch(e){}
     if(room.memory.carryctrl.busyTicks <= -95){

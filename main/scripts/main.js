@@ -15,9 +15,12 @@ let shardmove = require('shardmove')
 let shardMemory = require("shardMemory")
 let terminalCtrl = require("./terminalCtrl")
 let autoPlan = require('./建筑规划')
+let safemode = require('./safemode')
+let defend = require('./defend')
 
 require('prototype.Creep.move')
 require('prototype.Room')
+require('./prototype.Whitelist')
 
 // module.exports.loop=require("调用栈分析器").warpLoop(main); 
 module.exports.loop=main; 
@@ -45,6 +48,8 @@ function main() {
 
     // 生产并运行harvetser builder upgrader
     baseCreep.run();
+
+    defend.run()
 
     // 外矿
     autoOutMiner.run();
@@ -79,7 +84,7 @@ function main() {
     }
 
     autoConSite.test();
-    
+    safemode.run();
     // 清理内存
     clear();
     if(Game.cpu.bucket == 10000 && Game.shard.name != 'LAPTOP-46VTIAM7'){
@@ -87,19 +92,31 @@ function main() {
     }
     let center = Game.flags.center;
     if(center){
-        let pa = Game.flags.pa;
-        let pb = Game.flags.pb;
-        let pc = Game.flags.pc;
-        let pm = Game.flags.pm;
-        if(center) {
-            let points = []
-            if(pc)points.push(pc.pos)
-            if(pm)points.push(pm.pos)
-            if(pa)points.push(pa.pos)
-            if(pb)points.push(pb.pos)
-            let t = Game.cpu.getUsed()
+        let roomName = center.pos.roomName
+        
+        if(Game.rooms[roomName]){
+            let room = Game.rooms[roomName]
+            let controller = room.controller
+            let miner = room.find(FIND_MINERALS)
+            let sources = room.find(FIND_SOURCES)
+            let points = [controller.pos,miner[0].pos,sources[0].pos]
+            if(sources.length>1)points.push(sources[1].pos)
             autoPlan.run(center.pos,points)
-            console.log(Game.cpu.getUsed() - t)
+        }else{
+            let pa = Game.flags.pa;
+            let pb = Game.flags.pb;
+            let pc = Game.flags.pc;
+            let pm = Game.flags.pm;
+            if(center) {
+                let points = []
+                if(pc)points.push(pc.pos)
+                if(pm)points.push(pm.pos)
+                if(pa)points.push(pa.pos)
+                if(pb)points.push(pb.pos)
+                let t = Game.cpu.getUsed()
+                autoPlan.run(center.pos,points)
+                console.log(Game.cpu.getUsed() - t)
+            }
         }
     }
     if(Game.shard.name == 'LAPTOP-46VTIAM7'){
@@ -132,39 +149,43 @@ function main() {
             // }
         }
     }
-    if(typeof(InterShardMemory) !== 'undefined')
-        shardMemory.clear()
+    // if(typeof(InterShardMemory) !== 'undefined')
+    //     shardMemory.clear()
     Memory.cpu = Memory.cpu * 2047/2048 + Game.cpu.getUsed()/2048;
 }
 
 function tmp(){
-    let creep = Game.creeps.claim;
-    if(creep){
-        if(creep.ticksToLive >= 590)
-            shardmove.start(creep.name,'shard1','E36N41')
-        
-        if(Game.shard.name == 'shard1' && creep.room.name == 'E36N41'){
-            if(!creep.memory.overshard){
-                creep.memory.overshard = true;
-                shardmove.stop(creep.name)
-            }
-            if(creep.pos.isNearTo(creep.room.controller)){
-                creep.claimController(creep.room.controller)
-            }else{
-                creep.moveTo(creep.room.controller,{
-                    plainCost:1,
-                    swampCost:1,
-                    visualizePathStyle:{
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }})
-            }
-            
-        }
+    if(Game.shard.name == 'shard2'){
+        let ob = Game.getObjectById("5e9ae4972cf61655289494f1")
+        ob.observeRoom('E35N39')
     }
+    // let creep = Game.creeps.claim;
+    // if(creep){
+    //     if(creep.ticksToLive >= 590)
+    //         shardmove.start(creep.name,'shard1','E36N41')
+        
+    //     if(Game.shard.name == 'shard1' && creep.room.name == 'E36N41'){
+    //         if(!creep.memory.overshard){
+    //             creep.memory.overshard = true;
+    //             shardmove.stop(creep.name)
+    //         }
+    //         if(creep.pos.isNearTo(creep.room.controller)){
+    //             creep.claimController(creep.room.controller)
+    //         }else{
+    //             creep.moveTo(creep.room.controller,{
+    //                 plainCost:1,
+    //                 swampCost:1,
+    //                 visualizePathStyle:{
+    //                     fill: 'transparent',
+    //                     stroke: '#fff',
+    //                     lineStyle: 'dashed',
+    //                     strokeWidth: .15,
+    //                     opacity: .1
+    //                 }})
+    //         }
+            
+    //     }
+    // }
     let highRoomName = 'E39N49'
     if(Game.shard.name == 'shard3'){
         if(Game.time % 750 == 0){

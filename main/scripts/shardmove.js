@@ -4,13 +4,40 @@
  * 靠近目标从InterShardMemory中删掉即可
  */
 let path_data = {
-    "shard1_E36N41":[
-        { shard: 'shard3', roomName: 'E40N40', x: 9, y: 26 },
-        { shard: 'shard2', roomName: 'E40N40', x: 19, y: 11 },
-        { shard: 'shard1', roomName: 'E36N41', x: 37, y: 6 },
+    
+    "shard3_E21N41":[
+        { shard: 'shard3', roomName: 'E30N40', x: 13, y: 5 }, 
+        { shard: 'shard2', roomName: 'E30N40', x: 26, y: 6 }, 
+        { shard: 'shard1', roomName: 'E30N40', x: 24, y: 44 },
+        { shard: 'shard0', roomName: 'E50N71', x: 4, y: 48 }, 
+        { shard: 'shard0', roomName: 'E40N70', x: 33, y: 27 },
+        { shard: 'shard1', roomName: 'E20N40', x: 26, y: 43 },
+        { shard: 'shard2', roomName: 'E20N40', x: 27, y: 19 },
+
+        { shard: 'shard2', roomName: 'E40N30', x: 37, y: 18 },
+        { shard: 'shard1', roomName: 'E40N30', x: 18, y: 22 },
+        { shard: 'shard0', roomName: 'E70N51', x: 2, y: 48 },
+        { shard: 'shard0', roomName: 'E30N50', x: 43, y: 16 },
+        { shard: 'shard1', roomName: 'E20N40', x: 26, y: 43 },
+        
+        { shard: 'shard3', roomName: 'E21N41', x: 13, y: 5 }, 
+        
+    ],
+    "shard2_E35N39":[
+        { shard: 'shard2', roomName: 'E35N39', x: 19, y: 17 },
+    ],
+    "shard1_E13N41":[
+        { shard: 'shard3', roomName: 'E20N40', x: 36, y: 12 },
+        { shard: 'shard2', roomName: 'E20N40', x: 11, y: 18 },
+
+        { shard: 'shard2', roomName: 'E30N40', x: 26, y: 6 },
+        { shard: 'shard1', roomName: 'E30N40', x: 24, y: 44 },
+        { shard: 'shard0', roomName: 'E50N71', x: 4, y: 48 },
+        { shard: 'shard0', roomName: 'E40N70', x: 33, y: 27 },
+        { shard: 'shard1', roomName: 'E13N41', x: 20, y: 28 },
     ]
 }
-let longmove = require("longmove")
+let longmove = require("./longmove")
 
 let shardMemory = require("shardMemory")
 
@@ -25,6 +52,7 @@ module.exports = {
         shardMemory.set(Game.shard.name,data);
     },
     stop(creepName){
+        
         let data = shardMemory.get(Game.shard.name)
         if(!data.overshard)data.overshard = {}
         let memory = data.overshard
@@ -88,10 +116,9 @@ module.exports = {
                     //     console.log(shardname,creepName,memory[creepName])
                     // }
                     if(creep && paths){
-                        // console.log('over shard ',creep)
+                        // console.log('over shard ',creep,paths)
                         let pos = this.shardmove(creep,paths)
                         if(pos){
-                            
                             if(pos.roomName == creep.room.name){
                                 creep.moveTo(pos,{ignoreCreeps:false})
                             }else{
@@ -127,7 +154,15 @@ module.exports = {
     },
     shardmove(creep,paths){
         paths = _.filter(paths,(o)=>(o.shard == Game.shard.name))
-        let ret = _.min(paths,(o)=>(Game.map.getRoomLinearDistance(creep.pos.roomName,o.roomName)))
+        let ret = null,minDis = 10000
+        paths.forEach(o=>{
+            let dis = Game.map.getRoomLinearDistance(creep.pos.roomName,o.roomName)
+            if(dis <= minDis){
+                minDis = dis
+                ret = o
+            }
+        })
+        // let ret = _.min(paths,(o)=>(Game.map.getRoomLinearDistance(creep.pos.roomName,o.roomName)))
         if(ret)return new RoomPosition(ret.x,ret.y,ret.roomName)
         else return null;
     }

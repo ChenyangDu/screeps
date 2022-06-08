@@ -56,7 +56,7 @@ function getLimitMin(type){
 function getLimitMax(type){
     const FIGHT = ["XUH2O","XKHO2","XLHO2","XZH2O","XZHO2","XGHO2"]
     if(FIGHT.indexOf(type) != -1){
-        return 20000
+        return 5000
     }
     return 3000
 }

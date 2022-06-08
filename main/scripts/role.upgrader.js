@@ -36,6 +36,7 @@ var roleUpgrader = {
             if(creep.pos.getRangeTo(controller.pos) <= 3){
                 creep.upgradeController(controller)
             }
+            
             if(tStorage){
                 // if(creep.pos.getRangeTo(tStorage.pos) > 3){
                 //     creep.moveTo(tStorage,{range:1})
@@ -70,30 +71,40 @@ var roleUpgrader = {
                         creep.moveTo(targetPos,{maxRooms:1,ignoreCreeps:creep.pos.getRangeTo(targetPos) > 3})
                     }
                 }
-                if(creep.ticksToLive % 17 == 0){
+                if(creep.ticksToLive % 7 == 0 || creep.pos.lookFor(LOOK_STRUCTURES).filter(o=>o.structureType=='road').length){
                     let poslists = [];
                     for(let x = -1;x <= 1;x++)
                     for(let y = -1;y <= 1;y++){
                         if(!(x||y))continue;
-                        let pos = new RoomPosition(creep.pos.x + x,creep.pos.y + y,creep.pos.roomName)
+                        let nx = creep.pos.x + x
+                        let ny = creep.pos.y + y
+                        if(nx <1 || nx >= 49 || ny < 1 || ny >= 49)continue
+                        let pos = new RoomPosition(nx,ny,creep.pos.roomName)
                         if(pos.isNearTo(tStorage) &&
-                            pos.lookFor(LOOK_CREEPS).length == 0 &&
+                            pos.lookFor(LOOK_CREEPS).length == 0 && 
+                            pos.lookFor(LOOK_STRUCTURES).filter(o=>o.structureType=='road').length == 0 &&
+                            pos.lookFor(LOOK_TERRAIN) != 'wall' &&
                             pos.getRangeTo(controller) <= creep.pos.getRangeTo(controller) &&
                             (!creep.room.memory || !creep.room.memory.notUpgraderPos || 
                                 !pos.isEqualTo(creep.room.memory.notUpgraderPos.x,creep.room.memory.notUpgraderPos.y))){
                             poslists.push(pos)
                         }
                     }
+                    // if(creep.pos.x == 10 && creep.pos.y == 10){
+                    //     console.log(poslists)
+                    // }
                     if(poslists.length){
-                        creep.moveTo(_.min(poslists,(o)=>(o.getRangeTo(controller))))
+                        creep.moveTo(_.min(poslists,(o)=>(o.getRangeTo(controller))),{maxRooms:1})
                     }
                 }
             }else{
-                if(creep.pos.getRangeTo(controller.pos) > 5){
-                    creep.moveTo(controller,{range:RANGE,maxRooms:1})
-                }else if (creep.pos.getRangeTo(controller.pos) > RANGE){
-                    creep.moveTo(controller,{range:RANGE,ignoreCreeps:false})
-                }
+                
+                    if(creep.pos.getRangeTo(controller.pos) > 5){
+                        creep.moveTo(controller,{range:RANGE,maxRooms:1})
+                    }else if (creep.pos.getRangeTo(controller.pos) > RANGE){
+                        creep.moveTo(controller,{range:RANGE,ignoreCreeps:false,maxRooms:1})
+                    }
+                
             }
             
         }

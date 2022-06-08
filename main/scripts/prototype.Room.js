@@ -53,7 +53,7 @@ Room.prototype.centerLink = function(){
     link = this.find(FIND_STRUCTURES,{
         filter:(o)=>{
             if(o.structureType != STRUCTURE_LINK)return false;
-            return o.pos.isNearTo(this.storage)
+            return o.pos.inRangeTo(this.storage,2)
         }
     })
     if(link.length){

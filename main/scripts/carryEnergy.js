@@ -78,7 +78,7 @@ module.exports = {
                 
             
             // 借用creep
-            if(needBorrow(creeps,withdrawTargets,transferTargets,capacity)){
+            if(needBorrow(room,creeps,withdrawTargets,transferTargets,capacity)){
                 let creepName = carryCtrl.borrowCreep(room,60)
                 if(creepName && Game.creeps[creepName]){
                     creeps.push(Game.creeps[creepName])
@@ -139,10 +139,25 @@ module.exports = {
                 let creep = creeps[i]
                 if(creep.store.getFreeCapacity("energy") == 0){
                     creep.say('full')
-                    
-                    let target = findTransferTarget(creep,transferTargets)
+                    let targetId = creep.memory.targetId
+                    let target = null
+                    // transferTargets.forEach(o=>{
+                    //     if(!target && o.id == targetId){
+                    //         target = o
+                    //     }
+                    // })
+                    // if(target){
+                    //     creep.say(target.structureType)
+                    // }else{
+                    //     creep.say('full')
+                    // }
+                    if(!target)
+                        target = findTransferTarget(creep,transferTargets)
+
                     if(target){
+                        creep.memory.targetId = target.id
                         if(creepTransfer(creep,target)){
+                            creep.memory.targetId = null
                             carryCtrl.returnCreep(room,creep.name)
                             creeps.splice(i,1)
                             creepNames.splice(i,1)
@@ -184,9 +199,10 @@ module.exports = {
     }
 }
 
-function needBorrow(creeps,withdrawTargets,transferTargets,capacity){
+function needBorrow(room,creeps,withdrawTargets,transferTargets,capacity){
     
-    if (withdrawTargets.length && transferTargets.length){
+    // 用容量判断
+    if (/*withdrawTargets.length &&*/ transferTargets.length){
         if(creeps.length == 0)return true;
         if(creeps.length < 2 && withdrawTargets.length >= 2){
                 return true
@@ -211,9 +227,21 @@ function needBorrow(creeps,withdrawTargets,transferTargets,capacity){
         }) > capacity * creeps.length){
             return true
         }
-        
-        
     }
+
+    // tstorage空了，但是storage还有不少能量，说明运送效率太低
+    let tStorage = room.tStorage()
+    if(room.name == 'E13N41')
+    console.log(tStorage)
+    if(tStorage && tStorage.store.getUsedCapacity('energy') == 0){
+        let storage = room.storage
+        if(storage && storage.store.getUsedCapacity('energy') >=10000){
+            return true
+        }
+        let flags = room.find(FIND_FLAGS,{filter:{color:COLOR_YELLOW,secondaryColor:COLOR_YELLOW}})
+        console.log(flags)
+    }
+    return false
 }
 
 // 实际传输能量
@@ -253,6 +281,8 @@ function creepWithdraw(creep,target){
     // 如果距离够近就预定能量
     if (creep.pos.inRangeTo(target,5)){
         target.est_energy -= creep.store.getFreeCapacity("energy")
+    }else {
+        target.est_energy -= creep.store.getFreeCapacity("energy")/2
     }
     if (creep.pos.isNearTo(target)){
         if(creep.withdraw(target,RESOURCE_ENERGY) != OK){
