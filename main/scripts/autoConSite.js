@@ -134,7 +134,17 @@ function runCenterFlag(flag){
                 let pos = new RoomPosition(e[0],e[1],room.name)
                 if(level >= 6 || i != 1){
                     pos.createConstructionSite(STRUCTURE_CONTAINER)
-                    if(i > 1)
+                    if(i == 1){
+                        if(!room.memory.miner){
+                            let miner = room.find(FIND_MINERALS)[0]
+                            room.memory.miner = {}
+                            room.memory.miner.pos = {}
+                            room.memory.miner.id = miner.id
+                            room.memory.miner.pos.x = pos.x
+                            room.memory.miner.pos.y = pos.y
+                        }
+                    }
+                    if(i > 1)// 资源点放置黄黄旗
                         pos.createFlag(room.name + '_' + i,COLOR_YELLOW,COLOR_YELLOW)
                     // new RoomVisual(flag.roomName).text(level,e[0]+0.3,e[1]+0.5,{font:0.4,opacity:0.8})
                 }

@@ -1,11 +1,10 @@
 let spawnCtrl = require("spawnCtrl")
 let labCtrl = require("labCtrl")
-let longmove = require("longmove")
 let shardmove = require("./shardmove")
 module.exports = {
     run(){
         runHelpEnergy('shard3','E39N49','shard3','E21N41',200,20,false)
-        runHelpEnergy('shard2','E41N35','shard2','E35N39',200,20)
+        runHelpEnergy('shard2','E41N35','shard2','E35N39',200,20,false)
 
         runHelpBuilder('shard2','E35N39','shard1','E13N41',500,20,false)
         // runHelpEnergy('shard2','E41N35','shard3','E31N41',200,20,false)

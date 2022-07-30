@@ -98,7 +98,7 @@ function roomRun(room){
     const raAttackerName = room.name + '_raAttack'
     var raAttacker = Game.creeps[raAttackerName]
     if(!raAttacker){
-        let body = spawnCtrl.getbody([],[RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,MOVE,])
+        let body = spawnCtrl.getbody([],[RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,MOVE,],room.energyCapacityAvailable)
         spawnCtrl.addSpawnList(room.name,body,raAttackerName,{},)
         return;
     }

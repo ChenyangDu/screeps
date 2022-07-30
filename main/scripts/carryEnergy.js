@@ -228,18 +228,20 @@ function needBorrow(room,creeps,withdrawTargets,transferTargets,capacity){
             return true
         }
     }
-
     // tstorage空了，但是storage还有不少能量，说明运送效率太低
     let tStorage = room.tStorage()
-    if(room.name == 'E13N41')
-    console.log(tStorage)
     if(tStorage && tStorage.store.getUsedCapacity('energy') == 0){
         let storage = room.storage
         if(storage && storage.store.getUsedCapacity('energy') >=10000){
             return true
         }
-        let flags = room.find(FIND_FLAGS,{filter:{color:COLOR_YELLOW,secondaryColor:COLOR_YELLOW}})
-        console.log(flags)
+        
+        let terminal = room.terminal
+        if(terminal && terminal.store.getUsedCapacity('energy') >=10000){
+            return true
+        }
+        // let flags = room.find(FIND_FLAGS,{filter:{color:COLOR_YELLOW,secondaryColor:COLOR_YELLOW}})
+        // console.log(flags)
     }
     return false
 }
@@ -268,11 +270,11 @@ function creepTransfer(creep,target){
                     algorithm:'dijkstra'
                 })
                 if(nextExt && !creep.pos.isNearTo(nextExt)){
-                    creep.moveTo(nextExt)
+                    creep.moveTo(nextExt,{maxRooms:1})
                 }
             }
     }else{
-        creep.moveTo(target,{range:1})
+        creep.moveTo(target,{range:1,maxRooms:1})
     }
     return false;
 }
@@ -289,7 +291,7 @@ function creepWithdraw(creep,target){
             creep.pickup(target)
         }
     }else{
-        creep.moveTo(target,{range:1})
+        creep.moveTo(target,{range:1,maxRooms:1})
     }
 }
 

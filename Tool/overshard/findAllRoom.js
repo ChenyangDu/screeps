@@ -1,8 +1,8 @@
 //起点房间
-let roomArray=['shard3_E39N49','shard2_E41N35','shard1_E39N51']
+let roomArray=['shard3_E39N49','shard2_E41N35','shard2_E35N39','shard1_E39N51']
 
 //终点
-let endPoint=['shard1_E36N41']
+let endPoint=['shard1_E13N41']
 let ansArray=[]
 for(let start of roomArray){
     for(let end of endPoint){

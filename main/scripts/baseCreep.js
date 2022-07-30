@@ -282,7 +282,7 @@ function needUpgrader(room){
         if(room.storage && room.storage.store[RESOURCE_ENERGY] >= 25*1000){
             needToSpawn = true;
         }
-        if(room.terminal && room.terminal.store[RESOURCE_ENERGY] >= 50*1000){
+        if(room.terminal && room.terminal.store[RESOURCE_ENERGY] >= 25*1000){
             needToSpawn = true;
         }
         

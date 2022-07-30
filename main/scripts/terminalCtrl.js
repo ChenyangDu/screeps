@@ -10,11 +10,55 @@ let historyPrice = {}
 module.exports = {
     run(){
         if(Game.time % 1500 == 0)historyPrice = {}
-        Game.myrooms.forEach(room => {
-            if(room.terminal && Game.time % 10 == 0){
-                solve(room.terminal)
+        if(Game.time % 10 == 1){
+            let terminals = []
+            Game.myrooms.forEach(room => {
+                if(room.terminal){
+                    terminals.push(room.terminal)
+                }
+            });
+            terminals.forEach(terminal=>{
+                solve(terminal)
+            })
+            balance(terminals)
+        }
+        
+    }
+}
+
+
+/**
+ * 
+ * @param {StructureTerminal[]} terminals 
+ */
+function balance(terminals){
+    let balanceType = []
+    for(let terminal of terminals){
+        for(let type in terminal.store){
+            if(balanceType.indexOf(type) == -1 && 
+                getRoomUsedCapacity(type,terminal.room) >= 2*getBalanceLimit(type)){
+                balanceType.push(type)
             }
-        });
+        }
+    }
+    for(let terminal of terminals){
+        for(let type of balanceType){
+            let have = getRoomUsedCapacity(type,terminal.room)
+            let limit = getBalanceLimit(type)
+            if(have < limit){
+                let max_terminal,max_c = 0
+                for(let _terminal of terminals){
+                    if(getRoomUsedCapacity(type,_terminal.room) > max_c){
+                        max_c = getRoomUsedCapacity(type,_terminal.room)
+                        max_terminal = _terminal
+                    }
+                }
+
+                if(max_terminal){
+                    max_terminal.send(type,Math.min(max_terminal.store[type],limit),terminal.room.name)
+                }
+            }
+        }
     }
 }
 /**
@@ -43,7 +87,7 @@ function solve(terminal){
             }
         }
     }
-    for(let type of baseLabType){
+    for(let type of baseLabType.concat(['energy'])){
         
         let amount = getSellorBuy(type,room)
         if(amount > 0){
@@ -98,8 +142,13 @@ function getPrice(type){
 
 const baseLabType = ['O','H','Z','K','U','L','X']
 function getSellorBuy(type,room){
-    if(type == 'energy' && getRoomFreeCapacity(null,room) <= 50*1000){
-        return -10000 //卖能量
+    if(type == 'energy'){
+        if(getRoomFreeCapacity(null,room) <= 50*1000)
+            return -10000 //卖能量
+        else if(getRoomUsedCapacity('energy',room) <= 25000 && Game.market.credits >= 40*1000*1000){
+            console.log(Game.market.credits);
+            return 5000 // 买能量
+        }
     }
     if(baseLabType.indexOf(type) != -1 ){
         let amount = getRoomUsedCapacity(type,room)
@@ -110,6 +159,12 @@ function getSellorBuy(type,room){
         }
     }
     return 0
+}
+
+function getBalanceLimit(type){
+    if(type == 'energy')return 30000
+    else if(baseLabType.indexOf(type) != -1)return 3000
+    else return 500
 }
 
 /**

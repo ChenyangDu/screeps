@@ -220,7 +220,9 @@ function autoPlan(center,points){
                 structMap[STRUCTURE_CONTAINER].push([pos.x,pos.y])
                 roomCost.set(pos.x,pos.y,0xff)
                 costs.set(pos.x,pos.y,0xff)
-
+                if(i == 1){
+                    structMap[STRUCTURE_EXTRACTOR] = [[x,y]]
+                }
                 if(i>1){
                     let linkPoses = []
                     roomCost.forNear((x,y,val)=>{

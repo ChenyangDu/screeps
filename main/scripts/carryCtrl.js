@@ -21,7 +21,7 @@
  * todo:根据当前tick的被拒绝申请记录、正在工作中的creep状态，判断是否增加新的creep
  */
 let baseCreep = require("baseCreep")
-var spawnCtrl = require('spawnCtrl');
+var spawnCtrl = require('./spawnCtrl');
 
 
 module.exports = {
@@ -160,7 +160,7 @@ function needCarryer(room){
                 let c = Game.creeps[creep.name]
                 // 闲置的creep
                 if(c && c.pos.getRangeTo(target) > 5){
-                    c.moveTo(target,{range:5,ignoreCreeps:false})
+                    c.moveTo(target,{range:5,ignoreCreeps:false,maxRooms:1})
                 }
             }
         }
@@ -179,7 +179,7 @@ function needCarryer(room){
     if(room.memory.carryctrl.busyTicks <= -95){
         return false
     }
-    if(room.memory.carryctrl.busyTicks >= 50){
+    if(room.memory.carryctrl.busyTicks >= 40){
         // console.log("busyTicks >= 50",room.memory.carryctrl.busyTicks)
         return true
     }
@@ -221,10 +221,11 @@ function spawn(room,isEmergency=false){
         o=>o.opt && o.opt.memory && o.opt.memory.role == 'carryer')
     
 
-    let body_len = 24
-    if(room.energyCapacityAvailable >= 4000)body_len = 48;
+    // let body_len = 24
+    // if(room.energyCapacityAvailable >= 4000)body_len = 48;
     let body = spawnCtrl.getbody([],[CARRY,CARRY,MOVE,],
-        room.energyCapacityAvailable,body_len)
+        room.energyCapacityAvailable)
+    let body_len = body.length
     let memory = {role:'carryer'}
 
     let allCreeps = baseCreep.getAllCreeps()

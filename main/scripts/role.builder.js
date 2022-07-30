@@ -59,7 +59,7 @@ var roleBuilder = {
                             // console.log(pos,pos.lookFor(LOOK_STRUCTURES),pos.lookFor(LOOK_STRUCTURES).filter(o=> OBSTACLE_OBJECT_TYPES.indexOf(o.structureType)!=-1),
                             // pos.lookFor(LOOK_STRUCTURES).filter(o=> OBSTACLE_OBJECT_TYPES.indexOf(o.structureType)!=-1).length)
                             if(pos.inRangeTo(target,range-1) && pos.lookFor(LOOK_STRUCTURES).filter(o=> OBSTACLE_OBJECT_TYPES.indexOf(o.structureType)!=-1).length == 0
-                             && pos.lookFor(LOOK_CREEPS).lengt == 0){
+                             && pos.lookFor(LOOK_CREEPS).length == 0){
                                 closePos = pos
                                 break;
                             }
